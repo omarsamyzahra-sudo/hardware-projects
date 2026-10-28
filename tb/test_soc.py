@@ -14,7 +14,7 @@ from pathlib import Path
 import cocotb
 from cocotb.clock import Clock
 import cocotb.utils
-from cocotb.triggers import First, RisingEdge, Timer
+from cocotb.triggers import First, ReadOnly, RisingEdge, Timer
 
 from runner import ACCEL_SOURCES, CORE_SOURCES, REPO, run
 
@@ -35,6 +35,7 @@ async def run_program(dut):
         await RisingEdge(dut.clk)
     dut.rst.value = 0
     res = await First(RisingEdge(dut.tohost_valid), Timer(10 * max_cycles, unit="ns"))
+    await ReadOnly()                      # let tohost_data settle in this time step
     assert res is not None and int(dut.tohost_valid.value), f"no exit after {max_cycles} cycles"
     code = int(dut.tohost_data.value)
     dut._log.info(f"exit code {code} at {cocotb.utils.get_sim_time('ns') / 10:.0f} cycles")
