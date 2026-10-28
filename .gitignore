@@ -17,3 +17,4 @@ uvm/cov_db/
 sw/build/
 model/data/
 model/__pycache__/
+uvm/sim_*.log

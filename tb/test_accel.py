@@ -134,6 +134,8 @@ async def run_job(bus: AxiLite, A, W, bias, mult, shift, relu):
         polls += 1
         assert polls < 5000, "job never finished"
     want_acc, want_out = golden.job(A, W, bias, mult, shift, relu)
+    SAT[0] += want_out.size
+    SAT[1] += int(np.isin(want_out, (-128, 127)).sum())
     for m in range(M):
         for half in range(2):
             w = await bus.read_ok(OUT8 + 8 * m + 4 * half)
@@ -146,14 +148,21 @@ async def run_job(bus: AxiLite, A, W, bias, mult, shift, relu):
     return await bus.read_ok(CYCLES)
 
 
+SAT = [0, 0]          # int8 results checked, how many of them saturated
+
+
 def random_job(rng, M=None, KT=None):
+    """A random job whose scale mult / 2^shift spreads the results over the
+    int8 range (as a real layer's would). With a careless scale nearly every
+    output saturates at -128/127, and rounding or shift bugs go unseen."""
     M = M or int(rng.integers(1, golden.M_MAX + 1))
     KT = KT or int(rng.integers(1, 9))
     A = rng.integers(-128, 128, (M, KT * N))
     W = rng.integers(-128, 128, (KT * N, N))
-    bias = rng.integers(-(1 << 20), 1 << 20, N)
-    shift = int(rng.integers(6, 16))
-    mult = int(rng.integers(1, 1 << 16))
+    bias = rng.integers(-4096, 4096, N)
+    typical = 5000 * np.sqrt(8 * KT) + 2000          # typical |acc|
+    shift = int(rng.integers(16, 25))
+    mult = int(np.clip(60 / typical * rng.uniform(0.5, 1.5) * 2**shift, 1, 65535))
     return A, W, bias, mult, shift, bool(rng.integers(0, 2))
 
 
@@ -171,8 +180,10 @@ async def test_random_jobs(dut):
     """Random shapes and quantization, back to back, with bus jitter."""
     bus = await setup(dut, jitter=True)
     rng = np.random.default_rng(2026)
+    SAT[:] = [0, 0]
     for _ in range(12):
         await run_job(bus, *random_job(rng))
+    assert SAT[1] * 10 < SAT[0], f"{SAT[1]} of {SAT[0]} results saturated: weak stimulus"
 
 
 @cocotb.test()
@@ -199,8 +210,12 @@ async def test_requant_edges(dut):
             (np.full(8, -(1 << 20)), 1, 0, True),        # ReLU -> 0
             (np.full(8, (1 << 31) - 1000), 1, 0, False), # wraps negative
             (np.arange(8) * 1000, 65535, 63, False),     # everything rounds to 0
-            (np.arange(8) - 4, 3, 1, False)):            # rounding of halves
+            ):
         await run_job(bus, A, W, bias, mult, shift, relu)
+    # rounding of exact halves, both signs: A = 0, so ACC = bias
+    zero = np.zeros((2, 8), int)
+    await run_job(bus, zero, np.zeros((8, 8), int), np.arange(8) * 2 - 7, 1, 1, False)
+    await run_job(bus, zero, np.zeros((8, 8), int), np.arange(8) * 4 - 14, 3, 2, False)
     A = rng.integers(-128, 128, (5, 8))
     W = rng.integers(-128, 128, (8, 8))
     await run_job(bus, A, W, np.zeros(8, int), 1, 7, False)
