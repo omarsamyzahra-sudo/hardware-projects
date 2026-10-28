@@ -18,3 +18,7 @@ sw/build/
 model/data/
 model/__pycache__/
 uvm/sim_*.log
+openlane/results/gds/
+openlane/results/max.rpt
+openlane/results/min.rpt
+openlane/results/mid.png

@@ -80,6 +80,37 @@ of 8 columns are rewritten for every batch. Compute is about 1,600
 cycles per strip per batch. The obvious next steps are wider transfers
 (a DMA engine or AXI4 bursts) and keeping weights resident across batches.
 
+## Physical design (SKY130)
+
+The 8x8 array (`pe.sv` + `systolic_array.sv`, without the buffers, which
+would need SRAM macros) was taken from RTL to GDS with LibreLane (the
+OpenLane 2 successor), classic flow, on SkyWater's open 130 nm PDK
+(`sky130_fd_sc_hd`), 20 ns clock target, 40% core utilization.
+Config, scripts and reports are in `openlane/`.
+
+| | |
+|---|---|
+| die / core area | 1.89 mm² / 1.84 mm² (1371 x 1381 µm) |
+| standard cells | 108,707 (45% utilization) |
+| fmax, typical (tt, 25 °C, 1.8 V) | ~84 MHz (8.09 ns setup slack at 20 ns) |
+| fmax, worst corner (ss, 100 °C, 1.6 V) | ~43 MHz (-3.10 ns slack at 20 ns) |
+| peak compute at 84 MHz | 64 MAC/cycle = 5.4 GMAC/s |
+| power at 50 MHz (default switching activity) | 25.3 mW |
+| DRC / LVS | 0 / 0 errors |
+
+So the block signs off at the typical corner but misses 50 MHz at the
+slow corner. Remaining warnings: 118 max-fanout violations (mostly clock
+leaf buffers driving 12-15 flops against a limit of 10) and max-slew/cap
+violations concentrated in the slow corner. The critical path is the
+PE's 8x8 multiply feeding a 32-bit add in one cycle. A pipeline register
+between the multiply and the add would roughly halve it, at the cost of
+one more cycle of latency.
+
+`openlane/results/closeup.png` is a 60 µm window of the routed layout
+(SKY130 layer colors), and `die.png` is the whole block. The full view is
+a uniform texture because placement is flat: the 64 PEs are spread
+together rather than laid out as an 8x8 grid of tiles.
+
 ## Run it
 
 Source `env.sh` in Git Bash first (OSS CAD Suite, RISC-V GCC, Vivado bin).
