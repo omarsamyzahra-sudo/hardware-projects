@@ -45,7 +45,8 @@ CORE_SOURCES = [f"{RTL_DIR}/{f}" for f in (
 
 # The two cores the regression runs on: build name suffix -> Verilog defines.
 # REGRESS_CORES=pipeline (or =single) limits a run to one of them.
-CORES = {"pipeline": {}, "single": {"SINGLE_CYCLE": 1}}
+# "wait" is the pipeline with random data-memory wait states (tb_top MEM_WAIT).
+CORES = {"pipeline": {}, "single": {"SINGLE_CYCLE": 1}, "wait": {"MEM_WAIT": 1}}
 
 
 def selected_cores() -> dict[str, dict]:
@@ -153,7 +154,7 @@ async def lockstep(dut, iss: ISS, stop: Callable[[Retire], bool],
         await FallingEdge(dut.clk)
         cycles += 1
         strb = u(dut.dmem_wstrb)
-        if strb:
+        if strb and not u(dut.dmem_wait):      # a write lands only when accepted
             m = byte_mask(strb)
             bus.append((cycles, u(dut.dmem_addr) & ~3 & MASK, strb, u(dut.dmem_wdata) & m))
             _dirty.add((u(dut.dmem_addr) >> 2) % MEM_WORDS)

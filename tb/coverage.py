@@ -10,6 +10,10 @@ Two kinds of bins:
     signals: each forwarding path, the WB->ID bypass, each stall reason,
     each redirect kind, and the collisions (trap and branch in the same
     cycle, a store killed by an older trap, ...).
+  - Wait bins (the "wait" core: random data-memory wait states), for the
+    freeze logic: a load and a store waiting, waits of 2+ cycles, and what
+    is stuck behind MEM while it waits (a forwarded operand that has to be
+    latched, a taken branch, a load-use stall, a store in EX).
 
 A bin that's still zero after a run is a hole: either the generator never
 made that situation, or the design can't reach it. Holes are listed in the
@@ -62,6 +66,15 @@ PIPE_BINS = [
     "store_killed_by_trap",    # a valid store in EX cancelled by an older trap...
     "store_killed_by_mret",    # ...or by an older MRET (one bin for both hid a hole)
     "younger_exception_flushed",  # an exception in EX squashed by an older one in MEM
+]
+
+WAIT_BINS = [
+    "load", "store",           # the access MEM is waiting on
+    "multi_cycle",             # a wait of 2+ cycles in a row
+    "fwd_latch",               # EX forwards from WB while frozen: must latch it
+    "redirect_pending",        # a taken branch/jump in EX waits behind MEM
+    "stall_pending",           # a load-use stall in ID waits behind MEM
+    "store_in_ex",             # a younger store sits in EX (must not write twice)
 ]
 
 
@@ -126,8 +139,10 @@ def producer(ins: int) -> str | None:
 
 
 class Coverage:
-    def __init__(self, pipeline: bool):
+    def __init__(self, pipeline: bool, wait: bool = False):
         self.pipeline = pipeline
+        self.wait = wait
+        self.prev_hold = False
         self.bins: dict[str, int] = {}
         for m in MNEMONICS:
             self.bins[f"op.{m}"] = 0
@@ -146,6 +161,9 @@ class Coverage:
         if pipeline:
             for b in PIPE_BINS:
                 self.bins[f"pipe.{b}"] = 0
+        if wait:
+            for b in WAIT_BINS:
+                self.bins[f"wait.{b}"] = 0
         self.programs = 0
         self.instructions = 0
         self.cycles = 0
@@ -219,6 +237,23 @@ class Coverage:
         x_valid, x_instr = v(c.x_valid), v(c.x_instr)
         fa, fb = v(c.fwd_a), v(c.fwd_b)
         stall, redirect, trap, mret = v(c.stall), v(c.redirect_x), v(c.trap_m), v(c.mret_m)
+        if self.wait:
+            hold = bool(v(c.hold))
+            if hold:
+                self.hit("wait.load" if v(c.m_instr) & 0x7F == 0x03 else "wait.store")
+                if self.prev_hold:
+                    self.hit("wait.multi_cycle")
+                if x_valid:
+                    u1, u2 = reads(x_instr)
+                    if (u1 and fa == 2) or (u2 and fb == 2):
+                        self.hit("wait.fwd_latch")
+                    if x_instr & 0x7F == 0x23:
+                        self.hit("wait.store_in_ex")
+                if redirect:
+                    self.hit("wait.redirect_pending")
+                if stall:
+                    self.hit("wait.stall_pending")
+            self.prev_hold = hold
         if x_valid:
             u1, u2 = reads(x_instr)
             fa, fb = (fa if u1 else 0), (fb if u2 else 0)

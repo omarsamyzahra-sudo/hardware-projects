@@ -38,6 +38,16 @@
 //   nothing can still cancel it: the store itself didn't fault, and no older
 //   instruction is trapping or returning in MEM that cycle.
 //
+// Memory wait states
+//   A slow device (an AXI4-Lite peripheral, say) raises dmem_wait while the
+//   access of the instruction in MEM hasn't finished. That freezes IF, ID,
+//   EX and MEM in place and feeds bubbles into WB. The data port's request
+//   (dmem_addr/wdata/wstrb/re, driven from EX) counts as accepted only at a
+//   clock edge where dmem_wait was low, so a frozen store in EX is not
+//   written twice. While frozen, EX latches its operands after forwarding:
+//   the instruction it was forwarding from in WB moves on, and its value
+//   must not be lost. Plain block RAM just ties dmem_wait low.
+//
 // The trace_* outputs describe the instruction leaving WB (trace_valid = 0
 // for a bubble). The testbench compares them against the golden model.
 //
@@ -61,7 +71,9 @@ module core #(
     output logic [31:0] dmem_addr,
     output logic [31:0] dmem_wdata,
     output logic [3:0]  dmem_wstrb,
+    output logic        dmem_re,       // a real load is in EX (devices need this; RAM can ignore it)
     input  logic [31:0] dmem_rdata,
+    input  logic        dmem_wait,     // MEM's access isn't done: freeze the pipeline
 
     // retirement trace for the testbench
     output logic        trace_valid,
@@ -81,6 +93,7 @@ module core #(
     localparam logic [31:0] NOP = 32'h0000_0013;   // addi x0, x0, 0
 
     // Signals that flow backwards (from later stages to earlier ones).
+    logic        hold;             // MEM: waiting on a slow memory access
     logic        stall;            // ID: load-use hazard
     logic        redirect_x;       // EX: taken branch/jump, or FENCE.I
     logic [31:0] redirect_pc;
@@ -96,16 +109,20 @@ module core #(
     logic        w_rf_we;          // register-file write this cycle
 
     assign w_rf_we = w_valid && w_rd_we;
+    assign hold    = dmem_wait && !rst;
 
     // ==================================================================
     // IF: fetch
     // ==================================================================
     // Priority: the oldest instruction's redirect wins. A trap or MRET in
-    // MEM beats a branch in EX, which beats a stall in ID.
+    // MEM beats a branch in EX, which beats a stall in ID. A memory wait
+    // beats everything: nothing moves until MEM's access is done (and the
+    // fetch address must stay pc_f so imem_rdata stays its instruction).
     logic [31:0] pc_f, pc_next;
 
     always_comb begin
         if (rst)             pc_next = RESET_PC;
+        else if (hold)       pc_next = pc_f;
         else if (trap_m)     pc_next = mtvec_base;
         else if (mret_m)     pc_next = mepc_q;
         else if (redirect_x) pc_next = redirect_pc;
@@ -127,11 +144,11 @@ module core #(
     assign flush_d = trap_m || mret_m || redirect_x;
 
     always_ff @(posedge clk) begin
-        if (rst || flush_d) begin
+        if (rst || (flush_d && !hold)) begin
             d_valid <= 1'b0;
             d_pc    <= 32'd0;
             d_instr <= NOP;
-        end else if (!stall) begin
+        end else if (!stall && !hold) begin
             d_valid <= 1'b1;
             d_pc    <= pc_f;
             d_instr <= imem_rdata;
@@ -238,6 +255,7 @@ module core #(
 
     // ---- ID/EX ----
     logic [31:0] x_pc, x_instr, x_rs1_val, x_rs2_val, x_imm;
+    logic [31:0] rs1_x, rs2_x;   // EX operand values after forwarding
     logic [2:0]  x_funct3;
     logic        flush_x;
 
@@ -256,6 +274,11 @@ module core #(
             x_rs2_val <= 32'd0;
             x_imm     <= 32'd0;
             x_funct3  <= 3'd0;
+        end else if (hold) begin
+            // Frozen: keep the instruction, but latch its operands as
+            // forwarded now (a WB producer won't be in WB next cycle).
+            x_rs1_val <= rs1_x;
+            x_rs2_val <= rs2_x;
         end else if (flush_x) begin
             x_valid   <= 1'b0;
             x_ctrl    <= '0;
@@ -300,7 +323,6 @@ module core #(
         else                                                    fwd_b = FWD_NONE;
     end
 
-    logic [31:0] rs1_x, rs2_x;   // operand values after forwarding
 
     always_comb begin
         case (fwd_a)
@@ -360,6 +382,7 @@ module core #(
     // ---- data memory: address and store (the write lands at the end of EX) ----
     logic store_ok;
     assign store_ok  = x_valid && x_ctrl.mem_write && !exc_x && !trap_m && !mret_m && !rst;
+    assign dmem_re   = x_valid && x_ctrl.mem_read  && !exc_x && !trap_m && !mret_m && !rst;
     assign dmem_addr = alu_y;
 
     always_comb begin
@@ -412,7 +435,7 @@ module core #(
             m_st_addr   <= 32'd0;
             m_st_strb   <= 4'd0;
             m_st_data   <= 32'd0;
-        end else begin
+        end else if (!hold) begin
             m_valid     <= x_valid;
             m_ctrl      <= x_ctrl;
             m_pc        <= x_pc;
@@ -528,6 +551,11 @@ module core #(
             w_st_addr <= 32'd0;
             w_st_strb <= 4'd0;
             w_st_data <= 32'd0;
+        end else if (hold) begin
+            // MEM is still waiting: WB gets a bubble.
+            w_valid   <= 1'b0;
+            w_rd_we   <= 1'b0;
+            w_trap    <= 1'b0;
         end else begin
             w_valid   <= m_valid;
             w_pc      <= m_pc;
@@ -577,11 +605,28 @@ module core #(
     // Start in reset.
     always_comb if (!f_past_valid) assume (rst);
 
+    // Memory wait protocol: a device only makes MEM wait on a real access it
+    // accepted, and a faulting access never reaches a device. Beyond that,
+    // dmem_wait is free, except that a device finishes within 4 wait cycles
+    // (without some bound, k-induction can start from an unreachable state
+    // and stay frozen in it past its depth). Simulation covers longer waits.
+    always_comb
+        if (dmem_wait) assume (m_valid && (m_ctrl.mem_read || m_ctrl.mem_write) && !trap_m);
+
+    logic [2:0] f_wait_run = 3'd0;
+    always_ff @(posedge clk) f_wait_run <= dmem_wait ? f_wait_run + 3'd1 : 3'd0;
+    always_comb assume (f_wait_run <= 3'd4);
+
     // Whether the instruction in ID/EX really reads rs1/rs2 (a shadow copy of
     // the decoder's uses_rs1/uses_rs2, kept the same way as x_ctrl).
     logic f_x_uses1, f_x_uses2;
     always_ff @(posedge clk) begin
-        if (rst || flush_x) begin
+        if (rst) begin
+            f_x_uses1 <= 1'b0;
+            f_x_uses2 <= 1'b0;
+        end else if (hold) begin
+            // frozen along with ID/EX
+        end else if (flush_x) begin
             f_x_uses1 <= 1'b0;
             f_x_uses2 <= 1'b0;
         end else begin
@@ -631,17 +676,32 @@ module core #(
 
     always_ff @(posedge clk) begin
         if (f_past_valid && !$past(rst)) begin
-            // The load-use stall lasts exactly one cycle.
-            assert (!($past(stall) && stall));
+            // The load-use stall lasts exactly one (unfrozen) cycle.
+            assert (!($past(stall) && !$past(hold) && stall));
 
-            // A flush kills the younger instructions.
-            if ($past(flush_d)) assert (!d_valid);
-            if ($past(redirect_x || trap_m || mret_m)) assert (!x_valid);
+            // A flush kills the younger instructions (once the pipe moves).
+            if ($past(flush_d) && !$past(hold)) assert (!d_valid);
+            if ($past(redirect_x || trap_m || mret_m) && !$past(hold)) assert (!x_valid);
             if ($past(trap_m || mret_m)) assert (!m_valid);
 
             // A stalled instruction stays put in ID.
             if ($past(stall) && !$past(flush_d))
                 assert (d_valid == $past(d_valid) && d_instr == $past(d_instr) && d_pc == $past(d_pc));
+
+            // A memory wait freezes IF..MEM exactly and puts a bubble in WB:
+            // nothing is lost, duplicated, or retired twice.
+            if ($past(hold)) begin
+                assert (pc_f == $past(pc_f));
+                assert (d_valid == $past(d_valid) && d_instr == $past(d_instr) && d_pc == $past(d_pc));
+                assert (x_valid == $past(x_valid) && x_ctrl == $past(x_ctrl) && x_pc == $past(x_pc)
+                        && x_instr == $past(x_instr) && x_rd == $past(x_rd));
+                assert (m_valid == $past(m_valid) && m_ctrl == $past(m_ctrl) && m_pc == $past(m_pc)
+                        && m_result == $past(m_result) && m_st_strb == $past(m_st_strb));
+                assert (!w_valid && !w_rf_we);
+                // The operands EX will use are the ones it had when it froze.
+                if ($past(f_x_uses1)) assert (rs1_x == $past(rs1_x));
+                if ($past(f_x_uses2)) assert (rs2_x == $past(rs2_x));
+            end
 
             // A trapping instruction doesn't write its register...
             if ($past(trap_m)) assert (!w_rd_we);
@@ -666,6 +726,8 @@ module core #(
             cover (mret_m);
             cover (x_valid && x_ctrl.mem_write && trap_m);    // a store killed by an older trap
             cover (w_valid && w_trap);
+            cover (hold && x_valid && f_x_uses1 && fwd_a == FWD_MEMWB);  // forwarded operand latched
+            cover (hold && redirect_x);                                  // a branch waits behind MEM
         end
     end
 `endif

@@ -35,7 +35,9 @@ SUITES = {                       # column name -> test file
     "formal": "formal/core.sby",     # k-induction proof of the SVA properties in core.sv
 }
 
-# (name, file in rtl/, original text, mutated text)
+# (name, file in rtl/, original text, mutated text[, cores to run on])
+# Mutants of the memory-wait freeze only do anything when the data port
+# waits, so they run on the "wait" core (random wait states) instead.
 MUTANTS = [
     ("no EX/MEM forward (rs1)", "core.sv",
      "if (m_ctrl.reg_write && m_rd != 5'd0 && m_rd == x_rs1)  fwd_a = FWD_EXMEM;",
@@ -114,6 +116,18 @@ MUTANTS = [
      "assign redirect_x  = x_valid && !exc_x &&", "assign redirect_x  = x_valid &&"),
     ("bubbles decode real controls", "core.sv",
      "if (d_valid) begin\n            ctrl_d.reg_write", "if (1'b1) begin\n            ctrl_d.reg_write"),
+    ("frozen EX doesn't latch forwarded operands", "core.sv",
+     "            x_rs1_val <= rs1_x;\n            x_rs2_val <= rs2_x;\n", "", "wait"),
+    ("frozen MEM doesn't bubble WB", "core.sv",
+     "            w_valid   <= 1'b0;\n            w_rd_we   <= 1'b0;\n            w_trap    <= 1'b0;\n",
+     "", "wait"),
+    ("fetch address moves while frozen", "core.sv",
+     "        else if (hold)       pc_next = pc_f;\n", "", "wait"),
+    ("EX/MEM advances while frozen", "core.sv",
+     "        end else if (!hold) begin\n            m_valid     <= x_valid;",
+     "        end else begin\n            m_valid     <= x_valid;", "wait"),
+    ("IF/ID flushed while frozen", "core.sv",
+     "if (rst || (flush_d && !hold)) begin", "if (rst || flush_d) begin", "wait"),
 ]
 
 
@@ -122,7 +136,8 @@ def slug(name: str) -> str:
 
 
 def run_mutant(m) -> tuple[str, dict[str, bool], float]:
-    name, fname, old, new = m
+    name, fname, old, new = m[:4]
+    cores = m[4] if len(m) > 4 else "pipeline"
     d = WORK / slug(name)
     rtl = d / "rtl"
     shutil.rmtree(rtl, ignore_errors=True)
@@ -134,7 +149,7 @@ def run_mutant(m) -> tuple[str, dict[str, bool], float]:
     (rtl / fname).write_text(src.replace(old, new), encoding="utf-8")
 
     env = dict(os.environ, RTL_DIR=str(rtl), SIM_BUILD_ROOT=str(d / "build"),
-               REGRESS_CORES="pipeline", RAND_REQUIRE_COVERAGE="0")
+               REGRESS_CORES=cores, RAND_REQUIRE_COVERAGE="0")
     t0 = time.time()
     failed = {}
     for suite, path in SUITES.items():

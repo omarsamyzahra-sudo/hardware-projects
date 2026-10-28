@@ -1,21 +1,23 @@
 # Verification
 
 Two cores, one regression: the single-cycle core (`rtl/core_single.sv`) and
-the 5-stage pipeline (`rtl/core.sv`) run every simulation suite below.
+the 5-stage pipeline (`rtl/core.sv`) run every simulation suite below. The
+pipeline runs twice: once with plain block RAM, and once ("wait") with random
+data-memory wait states, the way a slow AXI4-Lite device stalls it (§10).
 
 | Layer | What | Result |
 |-------|------|--------|
 | Golden model | `tb/iss.py`, every instruction in lockstep | (the checker for everything below) |
-| Directed | 10 hand-written programs, `tb/test_core.py` | ✅ both cores |
+| Directed | 10 hand-written programs, `tb/test_core.py` | ✅ both cores + wait |
 | Pipeline hazards | 9 tests that watch the pipeline's internals, `tb/test_pipeline.py` | ✅ |
-| Official suite | 41/41 applicable riscv-tests rv32ui-p, `tb/test_riscv_tests.py` | ✅ both cores |
-| Constrained random | 200 programs per core every regression (~52k instructions each); soaked at 5,000 programs | ✅ both cores |
-| Functional coverage | 126 bins (103 ISA + 23 pipeline), `tb/coverage.py` | ✅ 126/126 pipeline, 103/103 single-cycle |
-| Formal | 23 SVA assertions proven by k-induction (unbounded), 6 covers reached, `formal/core.sby` | ✅ |
-| Mutation | 28 planted pipeline bugs, `tb/mutate.py` | ✅ 28/28 caught |
+| Official suite | 41/41 applicable riscv-tests rv32ui-p, `tb/test_riscv_tests.py` | ✅ both cores + wait |
+| Constrained random | 200 programs per core every regression (~52k instructions each); soaked at 5,000 programs | ✅ both cores + wait |
+| Functional coverage | 133 bins (103 ISA + 23 pipeline + 7 memory-wait), `tb/coverage.py` | ✅ 126/126 pipeline, 133/133 wait, 103/103 single-cycle |
+| Formal | 30 SVA assertions proven by k-induction (unbounded), 8 covers reached, `formal/core.sby` | ✅ |
+| Mutation | 33 planted pipeline bugs (5 in the wait-state freeze), `tb/mutate.py` | ✅ 33/33 caught |
 
 `./regress.sh` (Git Bash) or `regress.ps1` (PowerShell) runs all of it in
-one command, in under a minute, and exits nonzero if anything fails.
+one command, in about 90 seconds, and exits nonzero if anything fails.
 
 ---
 
@@ -255,8 +257,14 @@ failed (caught the bug).
 | CSR-immediate forms mark rs1 as read | · | ❌ | · | · | · |
 | faulting jump also redirects | · | · | · | · | ❌ |
 | bubbles decode real controls | · | · | · | · | ❌ |
+| frozen EX doesn't latch forwarded operands (wait core) | ❌ | · | ❌ | ❌ | ❌ |
+| frozen MEM doesn't bubble WB (wait core) | ❌ | · | ❌ | ❌ | ❌ |
+| fetch address moves while frozen (wait core) | ❌ | · | ❌ | ❌ | ❌ |
+| EX/MEM advances while frozen (wait core) | ❌ | · | ❌ | ❌ | ❌ |
+| IF/ID flushed while frozen (wait core) | · | · | · | · | ❌ |
 
-28/28 mutants killed.
+33/33 mutants killed. (The hazard suite runs on the plain pipeline only, so
+it never sees a wait state: its column is blank for the last five.)
 
 What the table says:
 - **No single layer catches everything.** Directed tests (written for the
@@ -298,6 +306,39 @@ in Milestone 2 (BLTU signed → `bltu` fails; LH sign bit → `lh`, `sh`,
 |------|---------------|------------|
 | `core_single` | 7,166 | 1,216 (1,024 of them the register file) |
 | `core` (pipeline) | 9,920 | 1,902 (1,024 register file, ~880 pipeline registers + CSRs) |
+
+## 10. Memory wait states (added for the accelerator SoC)
+
+Block RAM answers in one cycle, but an AXI4-Lite device can't, so the core
+got a `dmem_wait` input (and a `dmem_re` output, so a device only sees real
+loads). While MEM's access is waiting, IF..MEM freeze and WB takes a bubble.
+The subtle part: EX may be using a value forwarded from WB, and that
+instruction leaves WB during the freeze, so EX latches its operands as
+forwarded every frozen cycle.
+
+How it's checked:
+- **The "wait" core**: `tb/tb_top.sv` with `MEM_WAIT` holds every accepted
+  load or store for a random number of extra cycles (probability 1/2 per
+  cycle, so waits of 0, 1, 2, ... cycles). Every simulation suite above runs
+  on it in lockstep with the golden model. The bus checker in `cosim.py`
+  counts a write only at the edge where it is accepted (`dmem_wait` low).
+- **7 wait coverage bins**: a load and a store waiting, a 2+ cycle wait, and
+  what's stuck behind it (a WB-forwarded operand that must be latched, a
+  taken branch, a load-use stall, a store in EX that must not write twice).
+- **7 new assertions** (k-induction): during a wait, PC, IF/ID, ID/EX and
+  EX/MEM hold exactly, WB gets a bubble, and the operands EX will use don't
+  change. The proof assumes a device asserts `dmem_wait` only for a real,
+  accepted, non-faulting access, and finishes within 4 wait cycles (without
+  a bound, k-induction can start from an unreachable state and stay frozen
+  in it longer than its depth). The simulation waits aren't bounded.
+- **5 mutants** (table in §8), all caught. "IF/ID flushed while frozen" is
+  caught only by formal: in simulation a redirect waiting in EX flushes
+  IF/ID anyway once the wait ends, so no program can see the early flush.
+  It's equivalent today and breaks the "frozen means frozen" property.
+
+The first formal run failed in the base case. That was a testbench bug, not
+a core bug: the shadow registers that track whether EX really reads rs1/rs2
+(`f_x_uses1/2`) kept updating while ID/EX was frozen. They now freeze too.
 
 ## Still to do
 

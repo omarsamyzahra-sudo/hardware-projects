@@ -37,7 +37,7 @@ async def test_random_programs(dut):
     count = int(os.environ.get("RAND_PROGRAMS", "200"))
     core = os.environ.get("CORE", "pipeline")
     out = Path(os.environ.get("SIM_BUILD_ROOT", REPO / "sim_build"))
-    cov = Coverage(pipeline=(core == "pipeline"))
+    cov = Coverage(pipeline=(core in ("pipeline", "wait")), wait=(core == "wait"))
     total_i = total_c = 0
 
     for seed in range(seed0, seed0 + count):

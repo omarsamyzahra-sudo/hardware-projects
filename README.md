@@ -15,11 +15,13 @@ with cocotb against a Python golden model and the official riscv-tests suite.
 - ✅ **Constrained-random verification**: 200 generated programs per core in every
   regression, soaked at 5,000 programs (1.3M instructions); **126/126 functional
   coverage bins** closed
-- ✅ **Formal**: 23 SVA properties on the pipeline proven by k-induction (SymbiYosys),
+- ✅ **Memory wait states** for slow devices (an AXI4-Lite accelerator): the pipeline
+  freezes while a data access waits; every suite also runs with random wait states
+- ✅ **Formal**: 30 SVA properties on the pipeline proven by k-induction (SymbiYosys),
   every instruction stream, no depth bound
-- ✅ **Mutation-tested**: 28/28 planted pipeline bugs caught (no single layer catches all
+- ✅ **Mutation-tested**: 33/33 planted pipeline bugs caught (no single layer catches all
   of them; see the table in [docs/verification.md](docs/verification.md))
-- ✅ One-command regression: `./regress.sh` (under a minute)
+- ✅ One-command regression: `./regress.sh` (about 90 s)
 - ⬜ FPGA bring-up on the Arty A7 (Milestone 5)
 
 Methodology and numbers: [docs/verification.md](docs/verification.md). Bugs found

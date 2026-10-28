@@ -59,3 +59,16 @@
 - Bug count: 7 total, honest (course target 10+); see bugs.md "Count".
 - Yosys: pipeline 9,920 cells vs 7,166 single-cycle; no latches.
 - Next: Milestone 5 (Arty A7 bring-up), and your YOUR TURN unit tests.
+
+## 2026-10-28: memory wait states (for the systolic-accel SoC)
+
+- `core.sv`: `dmem_wait` input and `dmem_re` output. A waiting access in MEM
+  freezes IF..MEM and bubbles WB; frozen EX latches its forwarded operands.
+- New "wait" regression core (`tb_top.sv` `MEM_WAIT`, random waits on every
+  accepted data access); all four simulation suites pass on it; 7 new
+  coverage bins (133/133 on that core).
+- Formal: 7 new assertions + 2 covers; bounded-response assumption (4 wait
+  cycles) needed for induction. 30 assertions proven.
+- Mutation: 5 new freeze mutants, all killed (one only by formal: an
+  equivalent mutant in simulation). 33/33.
+- Built by Claude (Rayan didn't write this part).
