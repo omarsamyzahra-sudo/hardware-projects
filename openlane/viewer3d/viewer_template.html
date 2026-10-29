@@ -6,263 +6,968 @@
 <title>Systolic Array 3D</title>
 <style>
 :root {
-  --bg: #07090d; --panel: rgba(18, 22, 30, .88); --line: #2a3140; --text: #e6e9ef;
-  --muted: #8b93a3; --accent: #e8c547;
+  --bg: #06080c; --panel: rgba(14, 18, 26, .9); --line: #262d3a; --line2: #3a4456;
+  --text: #e7eaf0; --muted: #8e97a8; --accent: #f2c94c;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
   font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
-canvas { display: block; }
-#panel { position: absolute; top: 16px; left: 16px; width: 280px; max-height: calc(100% - 32px);
+canvas { display: block; width: 100vw; height: 100vh; }
+#panel { position: absolute; top: 14px; left: 14px; width: 300px; max-height: calc(100% - 28px);
   overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-  padding: 14px 16px; backdrop-filter: blur(6px); }
-h1 { font-size: 16px; margin: 0 0 2px; }
-.sub { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  padding: 14px 16px 16px; backdrop-filter: blur(8px); }
+h1 { font-size: 16px; margin: 0; letter-spacing: .01em; }
+.sub { color: var(--muted); font-size: 12px; margin: 2px 0 12px; }
 h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
-  margin: 14px 0 6px; font-weight: 600; }
-.scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-button { background: #1a202b; color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  margin: 16px 0 6px; font-weight: 600; display: flex; justify-content: space-between; }
+h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin-bottom: 6px;
+  background: #0b0e14; border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+button { background: #19202c; color: var(--text); border: 1px solid var(--line); border-radius: 7px;
   padding: 7px 6px; font: inherit; font-size: 13px; cursor: pointer; }
-button:hover { border-color: #4a5468; }
-button.on { border-color: var(--accent); color: var(--accent); }
-#desc { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
-.layers label { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: pointer;
+.seg button { background: transparent; border-color: transparent; }
+button:hover { border-color: var(--line2); }
+button.on { background: #262013; border-color: var(--accent); color: var(--accent); }
+#desc { color: #c3c9d4; font-size: 12.5px; margin: 8px 0 0; }
+.legend { display: flex; flex-direction: column; gap: 1px; }
+.legend label { display: grid; grid-template-columns: 16px 12px 1fr auto; align-items: center; gap: 7px;
+  padding: 2px 4px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.legend label:hover { background: #1a212d; }
+.legend input { margin: 0; accent-color: var(--accent); }
+.legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+.legend .n { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.row { display: grid; grid-template-columns: 76px 1fr 44px; align-items: center; gap: 8px; margin: 7px 0;
   font-size: 13px; }
-.layers .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
-.layers .z { margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-.row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
-.row span:first-child { width: 78px; color: var(--muted); }
-.row input[type=range] { flex: 1; accent-color: var(--accent); }
-.row output { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
-.tools { display: flex; gap: 6px; margin-top: 10px; }
-.tools button { flex: 1; }
-#hint { position: absolute; right: 16px; bottom: 14px; color: var(--muted); font-size: 12px; }
-#toggle { display: none; position: absolute; top: 12px; left: 12px; z-index: 2; }
-@media (max-width: 640px) {
-  #panel { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 50%; }
+.row > span:first-child { color: var(--muted); }
+.row input[type=range] { width: 100%; accent-color: var(--accent); }
+.row output { text-align: right; font-variant-numeric: tabular-nums; }
+.row select { grid-column: span 2; background: #19202c; color: var(--text); border: 1px solid var(--line);
+  border-radius: 7px; padding: 5px 6px; font: inherit; font-size: 13px; }
+.tools { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+#info { position: absolute; right: 14px; bottom: 14px; width: 360px; max-width: calc(100% - 28px);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  backdrop-filter: blur(8px); font-size: 13px; pointer-events: none; }
+#info.pinned { border-color: var(--accent); }
+#info .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; margin: 8px 0 3px; }
+#info .k:first-child { margin-top: 0; }
+#info .t { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 7px; }
+#info .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+#info p { margin: 3px 0; color: #c9ced8; }
+#info code { color: var(--accent); font-size: 12px; }
+#info .m { color: var(--muted); font-size: 12px; }
+#hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; color: var(--muted);
+  font-size: 12px; pointer-events: none; text-align: center; }
+#loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg);
+  color: var(--muted); font-size: 14px; z-index: 5; }
+#toast { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; display: none; }
+#toggle { display: none; position: absolute; top: 12px; left: 12px; z-index: 3; }
+dialog { max-width: 760px; width: calc(100% - 32px); max-height: calc(100% - 48px); background: #0e121a;
+  color: var(--text); border: 1px solid var(--line2); border-radius: 14px; padding: 22px 26px; }
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog h3 { margin: 18px 0 6px; font-size: 15px; }
+dialog h3:first-of-type { margin-top: 4px; }
+dialog p, dialog li { color: #c9ced8; font-size: 14px; }
+dialog table { border-collapse: collapse; font-size: 13px; width: 100%; }
+dialog td, dialog th { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+dialog th { color: var(--muted); font-weight: 600; }
+dialog .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+dialog .close { position: sticky; top: 0; float: right; }
+@media (max-width: 700px) {
+  #panel { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 55%; }
   #panel.hidden { display: none; }
   #toggle { display: block; }
+  #info { top: 52px; bottom: auto; right: 10px; width: auto; left: 10px; }
   #hint { display: none; }
 }
 </style>
 </head>
 <body>
+<div id="loading">Loading layout…</div>
 <button id="toggle">Controls</button>
 <div id="panel">
   <h1>8×8 systolic array, in 3D</h1>
-  <p class="sub">Real SKY130 layout from LibreLane, each layer at its process height.</p>
-  <div class="scenes">
+  <p class="sub">Your real SKY130 layout from LibreLane. Every shape is from the GDS.</p>
+  <div class="seg" id="scenes">
     <button data-scene="array">Array</button>
-    <button data-scene="tile">One PE</button>
+    <button data-scene="pe">One PE</button>
     <button data-scene="closeup">Close-up</button>
   </div>
+  <div class="seg" id="modes">
+    <button data-mode="layers">Layers</button>
+    <button data-mode="functions">Cell functions</button>
+  </div>
   <p id="desc"></p>
-  <h2>Layers</h2>
-  <div class="layers" id="layers"></div>
+  <h2 id="legend-title"></h2>
+  <div class="legend" id="legend"></div>
   <h2>View</h2>
-  <div class="row"><span>Height ×</span><input id="ex" type="range" min="1" max="80" step="1"><output id="exv"></output></div>
+  <div class="row"><span>Height ×</span><input id="ex" type="range" min="1" max="40" step="1"><output id="exv"></output></div>
+  <div class="row"><span>Peel</span><input id="peel" type="range" min="-1" max="15" step="1" value="15"><output id="peelv"></output></div>
   <div class="row"><span>Explode</span><input id="explode" type="range" min="0" max="100" step="1" value="0"><output id="expv">0</output></div>
+  <div class="row"><span>Colours</span><select id="palette"><option value="false">False colour (by layer)</option><option value="real">Realistic materials</option></select></div>
+  <div class="row"><span>Quality</span><select id="quality"><option value="fast">Fast</option><option value="high">High: AO + shadows</option><option value="ultra">Ultra: supersampled</option></select></div>
+  <div class="row" id="detail-row"><span>Array detail</span><select id="detail"><option value="full">Every PE fully wired</option><option value="light">Upper metals only</option></select></div>
   <div class="tools">
-    <button id="rotate">Auto-rotate</button>
-    <button id="shot">Save PNG</button>
+    <button id="rotate">Rotate</button>
+    <button id="reset">Reset view</button>
+    <button id="guide-btn">Guide</button>
+    <button id="shot4">Save 4K</button>
+    <button id="shot8">Save 8K</button>
+    <button id="unpin" disabled>Unpin</button>
   </div>
 </div>
-<div id="hint">Drag to orbit · right-drag to pan · scroll to zoom</div>
+<div id="info" hidden></div>
+<div id="toast"></div>
+<div id="hint">Drag to orbit · right-drag to pan · scroll to zoom · hover to inspect · click to pin</div>
+
+<dialog id="guide">
+  <button class="close" id="guide-close">Close</button>
+  <h3>What you are looking at</h3>
+  <p>This is the physical layout of your 8×8 weight-stationary systolic array (<code>systolic_array.sv</code> and
+  <code>pe.sv</code>) after LibreLane took it from RTL to GDS on SkyWater's open 130 nm process. Every shape is
+  read from the final GDS file, the same file a foundry would use to make masks. Each mask layer is raised to its
+  real height in the SKY130 stack (approximate values, in microns). The chip is about 300 times wider than it is
+  tall, so the <b>Height ×</b> slider stretches it vertically; the close-up starts at true height.</p>
+  <p>The colours are false colours, one per layer, the way layout tools show them. <b>Realistic materials</b>
+  switches to aluminium wiring, a gold-brown local interconnect and grey silicon.</p>
+
+  <h3>The three scenes</h3>
+  <ul>
+    <li><b>Array</b>: the whole 1.96 mm block. 64 identical PE macros (each one 180 µm square) sit on a 220 µm
+      grid. Between them run the top-level wires and the skew/deskew registers. Over everything is the
+      chip-level power grid: vertical met4 straps and wide horizontal met5 rails.</li>
+    <li><b>One PE</b>: one processing element, every layer from the transistors to met4. This is <code>pe.sv</code>
+      in silicon: 1,865 standard cells. That's 57 flip-flops, about 1,180 logic gates, about 260 buffers (the
+      clock tree included) and 360 well taps, plus about 3,500 decap and filler cells in the gaps.</li>
+    <li><b>Close-up</b>: a 25 µm patch of that PE's adder logic at true height. Drag <b>Peel</b> down to strip
+      the layers off until the individual transistors show.</li>
+  </ul>
+
+  <h3>The controls</h3>
+  <ul>
+    <li><b>Hover</b> over anything to see what layer it is, which cell sits under it, what that cell does in your
+      design and which PE it belongs to. <b>Click</b> to pin the card; click again or press Esc to let it go.</li>
+    <li><b>Height ×</b> stretches the stack vertically. At 1× everything has its true proportions.</li>
+    <li><b>Peel</b> hides every layer above the one you pick, top down. <b>Explode</b> pulls the layers apart
+      vertically so you can see between them.</li>
+    <li><b>Quality</b>: High adds ambient occlusion (soft shading in corners and gaps) and sun shadows. Ultra
+      supersamples on top of that. <b>Save 4K / 8K</b> renders a PNG at that width from the current view.</li>
+    <li><b>Array detail</b>: drawing every PE fully wired is 64 copies of the PE's metal. On a weaker GPU,
+      "upper metals only" keeps it smooth.</li>
+  </ul>
+
+  <h3>The layers, bottom to top</h3>
+  <table id="guide-layers"></table>
+
+  <h3>Cell functions</h3>
+  <p>A standard cell is a pre-designed gate (NAND, flip-flop, adder piece…) that is 2.72 µm tall and a multiple of
+  0.46 µm wide. The tools place thousands of them in rows. In <b>Cell functions</b> mode each cell is drawn as a
+  coloured block. The colour shows what that cell does <i>in your design</i>, worked out by tracing the placed
+  netlist:</p>
+  <table id="guide-roles"></table>
+  <p>Synthesis doesn't keep "the multiplier" and "the adder" as separate blocks. Yosys turns
+  <code>ps_in + a × w</code> into one multiply-accumulate tree, so <code>ps_in</code> joins the same adder tree that
+  sums the partial products. Every gate downstream of that point sees <code>ps_in</code> and is coloured "adder".
+  That's why "adder" outnumbers "multiplier".</p>
+
+  <h3>How the array works in this picture</h3>
+  <p>Activations enter on the left (west) edge. The skew registers delay lane <i>k</i> by <i>k</i> cycles, then each
+  PE passes its activation to the right through its activation register. Partial sums enter at the top, where tie
+  cells feed constant zeros, and move down one PE per clock through the partial-sum registers. Each PE adds
+  <i>a × w</i> on the way. At the bottom, the deskew registers delay column <i>n</i> by 7 − <i>n</i> cycles so
+  all eight column sums leave together.</p>
+
+  <h3>Things worth noticing</h3>
+  <ul>
+    <li>About 43% of each PE's area is decap and filler. Real logic fills only about 57% of the PE, which leaves
+      the router room. The decaps also steady the supply.</li>
+    <li>met1 is mostly horizontal power rails, one pair per 2.72 µm row. Signal wiring alternates direction
+      layer by layer: met2 vertical, met3 horizontal.</li>
+    <li>Each PE's logic is packed into its own 180 µm square, so its wires stay short. In the flat run the same
+      logic was spread across the whole die. That run missed the slow corner (−3.10 ns of slack); this one passes
+      (+3.29 ns).</li>
+    <li>The top level has 961 hold-fix delay cells. The clock tree delivers the clock to the registers late, so
+      data on short paths could change before the receiving flip-flop had
+      captured it. The tools slowed those paths down.</li>
+    <li>Over 1,400 top-level cells exist only for reset. All 1,262 top-level registers have an <code>and2b</code>
+      in front that forces a 0 while <code>rst</code> is high, and a tree of 153 buffers fans the one <code>rst</code>
+      pin out to all of them.</li>
+  </ul>
+</dialog>
 
 /*DATA*/
 
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/build/index.module.js"
 } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
-// SKY130 vertical stack in microns (bottom, top), approximate process values.
-// poly is lifted onto the diffusion so gates read clearly from above.
-const STACK = {
-  nwell: [-0.30, 0.00, '#2b2e52', 'n-well'],
-  diff:  [0.00, 0.12, '#3f9142', 'diffusion'],
-  tap:   [0.00, 0.12, '#2c6b30', 'well tap'],
-  poly:  [0.12, 0.30, '#c0392b', 'poly (gates)'],
-  licon: [0.12, 0.94, '#bfc5cc', 'licon'],
-  li1:   [0.94, 1.04, '#40b5c0', 'li1'],
-  mcon:  [1.04, 1.38, '#bfc5cc', 'mcon'],
-  met1:  [1.38, 1.74, '#4a7fe0', 'met1'],
-  via:   [1.74, 2.01, '#d0d4da', 'via'],
-  met2:  [2.01, 2.37, '#a95ad6', 'met2'],
-  via2:  [2.37, 2.79, '#d0d4da', 'via2'],
-  met3:  [2.79, 3.63, '#4fbf6a', 'met3'],
-  via3:  [3.63, 4.02, '#d0d4da', 'via3'],
-  met4:  [4.02, 4.87, '#e8c547', 'met4'],
-  via4:  [4.87, 5.37, '#d0d4da', 'via4'],
-  met5:  [5.37, 6.63, '#d9822b', 'met5'],
-  pe:    [0.00, 4.02, '#2f5d9a', 'PE macros (blocks)'],
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- reference data
+// [z0, z1 (µm), false colour, realistic colour, kind, label, what it is]
+const LAYERS = {
+  nwell: [-0.30, 0.00, '#39407a', '#2a2e36', 'si', 'n-well',
+    'Region of n-type doping in the p-type wafer. PMOS transistors are built inside n-wells, NMOS directly in the substrate.'],
+  diff:  [0.00, 0.12, '#3f9142', '#6c7882', 'si', 'diffusion',
+    'Active area: doped silicon that forms the source and drain of each transistor. Wherever a poly stripe crosses diffusion, that crossing is one transistor.'],
+  tap:   [0.00, 0.12, '#2c6b30', '#59656d', 'si', 'well tap',
+    'Diffusion that ties the n-well to VPWR and the substrate to VGND so the transistors can\'t latch up.'],
+  poly:  [0.12, 0.30, '#d4483e', '#a08b6c', 'poly', 'poly (gates)',
+    'Polysilicon: the transistor gates. Each poly stripe crossing diffusion is one MOSFET; its 0.15 µm width is the channel length.'],
+  licon: [0.12, 0.94, '#c9ced6', '#7d838c', 'via', 'licon',
+    'Contacts: plugs from diffusion and poly up to the local interconnect.'],
+  li1:   [0.94, 1.04, '#3fb8c4', '#b39258', 'metal', 'li1 (local interconnect)',
+    'Local interconnect, a thin titanium-nitride layer special to SKY130. It wires transistors together inside each standard cell.'],
+  mcon:  [1.04, 1.38, '#c9ced6', '#7d838c', 'via', 'mcon',
+    'Contacts from li1 up to metal 1, mostly on cell pins and power rails.'],
+  met1:  [1.38, 1.74, '#4a7fe0', '#aeb4bd', 'metal', 'met1',
+    'Metal 1: the VPWR/VGND power rails along every 2.72 µm cell row, plus short wires between neighbouring cells.'],
+  via:   [1.74, 2.01, '#d9dde3', '#7d838c', 'via', 'via1', 'Vertical plugs between met1 and met2.'],
+  met2:  [2.01, 2.37, '#a95ad6', '#aeb4bd', 'metal', 'met2',
+    'Metal 2: signal routing, preferred direction vertical.'],
+  via2:  [2.37, 2.79, '#d9dde3', '#7d838c', 'via', 'via2', 'Vertical plugs between met2 and met3.'],
+  met3:  [2.79, 3.63, '#4fbf6a', '#aeb4bd', 'metal', 'met3',
+    'Metal 3: longer signal routes, preferred direction horizontal. Thicker than met1/met2.'],
+  via3:  [3.63, 4.02, '#d9dde3', '#7d838c', 'via', 'via3', 'Vertical plugs between met3 and met4.'],
+  met4:  [4.02, 4.87, '#e8c547', '#aeb4bd', 'metal', 'met4',
+    'Metal 4: inside each PE, the vertical power straps (the PE\'s top layer). At the top level, long signals in the channels.'],
+  via4:  [4.87, 5.37, '#d9dde3', '#7d838c', 'via', 'via4',
+    'Plugs from the chip-level met5 power rails down to each PE\'s met4 straps: how every PE gets power.'],
+  met5:  [5.37, 6.63, '#e0883a', '#aeb4bd', 'metal', 'met5',
+    'Metal 5: the thickest, top layer. Wide horizontal VPWR/VGND rails, the chip-level power grid.'],
 };
-const ORDER = Object.keys(STACK);
+const ORDER = Object.keys(LAYERS);
+const CELL_TOP = 1.04;              // function blocks rise to the top of li1
+
+// role -> [label, colour, what it does in this design]
+const ROLES = {
+  reg_w:   ['Weight register', '#c77dff', 'Holds one bit of a stored weight. The PE has two banks (w0, w1) so the next weight tile can load while the current one is in use.'],
+  reg_act: ['Activation register', '#4cc9f0', 'Passes the activation (and its bank-select bit) to the PE on the right, one clock later: the "activations move right" half of the systolic flow.'],
+  reg_ps:  ['Partial-sum register', '#ff9f1c', 'Holds one bit of ps_out = ps_in + a × w and hands it to the PE below on the next clock: the "sums move down" half.'],
+  mult:    ['Multiplier logic', '#ef476f', 'Gates fed only by the activation and the weight: the partial products and early reduction of the 8×8 signed multiply a × w.'],
+  adder:   ['Adder logic', '#ffd166', 'Gates that see ps_in: the 32-bit add of the product to the incoming partial sum, which synthesis fused with the multiply\'s final stage.'],
+  select:  ['Weight bank select', '#f15bb5', 'Chooses w0 or w1 using the bank-select bit that travels with each activation.'],
+  wload:   ['Weight load logic', '#9b5de5', 'Writes w_in into the chosen bank when w_we is high; otherwise the stored weight is kept.'],
+  misc:    ['Other logic', '#8d99ae', 'Logic not fed by the datapath inputs.'],
+  reg_skew:   ['Input skew register', '#4cc9f0', 'Delays activation lane k by k cycles so each row\'s data meets the diagonal wavefront in the array.'],
+  reg_deskew: ['Output deskew register', '#ff9f1c', 'Delays column n\'s sum by 7 − n cycles so all 8 column results leave the array in the same cycle.'],
+  reg_valid:  ['Valid/tag pipeline', '#c77dff', 'Carries the valid bit and the row tag alongside the data for the 15-cycle trip through the array.'],
+  reg_misc:   ['Register', '#8d99ae', 'A flip-flop the tracer could not tie to a named register.'],
+  reset:   ['Reset gate', '#ef476f', 'An and2b in front of every top-level register: while rst is high it forces the next value to 0 (synchronous reset).'],
+  regbuf:  ['Register input buffer', '#7f8a9c', 'Re-drives the gated value into its flip-flop.'],
+  rsttree: ['Reset tree buffer', '#e76f51', 'Fans the single rst pin out to about 1,300 reset gates.'],
+  tie:     ['Tie-low cell', '#80ed99', 'Supplies the constant 0 that each top-row PE adds to (ps_in = 0 at the top of the array).'],
+  decode:  ['Weight-row decode', '#ffd166', 'Turns w_row and w_row_we into the write enable for one row of PEs.'],
+  clock:   ['Clock tree', '#06d6a0', 'Buffers that spread the clock so every flip-flop sees the edge at nearly the same moment.'],
+  io:      ['I/O buffer', '#90e0ef', 'Buffers on the block\'s pins: they isolate the internal logic from the long wires outside.'],
+  repair:  ['Repair buffer', '#adb5bd', 'Inserted by the tools to fix weak drive, long wires or too much load on one output.'],
+  hold:    ['Hold-fix delay', '#f4a261', 'A deliberately slow cell that delays a too-fast path, so data can\'t change before the receiving flip-flop has captured it.'],
+  antenna: ['Antenna diode', '#e9c46a', 'Bleeds off charge that long wires collect during manufacturing, before it can damage a transistor gate.'],
+  tap:     ['Well tap', '#4a5262', 'Ties the wells to power and ground (no logic).'],
+  decap:   ['Decap', '#363d4a', 'Decoupling capacitor between VPWR and VGND: steadies the supply when nearby logic switches (no logic).'],
+  filler:  ['Filler', '#2a2f39', 'Empty cell that keeps the rows, wells and power rails continuous (no logic).'],
+};
+const ROLE_ORDER = Object.keys(ROLES);
+
+const SIMPLE = {
+  dfxtp: 'D flip-flop: on each rising clock edge it copies D to Q and holds it for the cycle. One bit of storage.',
+  dfrtp: 'D flip-flop with asynchronous reset.',
+  mux2: '2-to-1 multiplexer: X = S ? A1 : A0.', mux2i: 'Inverting 2-to-1 multiplexer: Y = !(S ? A1 : A0).',
+  inv: 'Inverter: Y = !A.', clkinv: 'Clock inverter: Y = !A, with balanced rise and fall delays.',
+  clkinvlp: 'Low-power clock inverter: Y = !A, sized to waste less power on the clock net.',
+  buf: 'Buffer: X = A, re-driven by larger transistors so the signal can drive a long wire or many inputs.',
+  clkbuf: 'Clock buffer: a buffer with balanced rise and fall delays, built for clock trees.',
+  bufinv: 'Inverting buffer: Y = !A with strong drive.',
+  dlygate4sd3: 'Delay gate (~0.5 ns): a deliberately slow buffer used to fix hold timing.',
+  clkdlybuf4s25: 'Delay buffer (~0.25 ns): a slow buffer used as a delay element.',
+  dlymetal6s2s: 'Delay buffer built with long internal metal.',
+  conb: 'Tie cell: outputs a constant 1 (HI) and 0 (LO). Logic inputs are never tied straight to the power rails.',
+  diode: 'Antenna diode: a reverse-biased diode that drains manufacturing charge from a long wire.',
+  decap: 'Decoupling capacitor: transistors wired as a capacitor between VPWR and VGND. No logic.',
+  fill: 'Filler: an empty cell that keeps the n-well and power rails continuous.',
+  tapvpwrvgnd: 'Well tap: connects the n-well to VPWR and the substrate to VGND.',
+  maj3: 'Majority of 3: X = 1 when at least two inputs are 1. This is the carry-out of a full adder.',
+  fa: 'Full adder: SUM = A ⊕ B ⊕ CIN, COUT = majority(A, B, CIN).', ha: 'Half adder: SUM = A ⊕ B, COUT = A · B.',
+  xor2: 'XOR: X = A ⊕ B (1 when the inputs differ). The sum bit of binary addition.',
+  xnor2: 'XNOR: Y = !(A ⊕ B) (1 when the inputs match). Used for sum bits and comparisons.',
+  xor3: '3-input XOR: X = A ⊕ B ⊕ C, the sum bit of a full adder.', xnor3: '3-input XNOR.',
+};
+
+function cellText(type) {
+  const m = type.match(/^(.*?)_(\d+)$/);
+  const base = m ? m[1] : type, drive = m ? +m[2] : null;
+  let what = SIMPLE[base];
+  let g;
+  if (!what && (g = base.match(/^(and|or|nand|nor)(\d)(b{0,2})$/))) {
+    const op = { and: 'AND', or: 'OR', nand: 'NAND', nor: 'NOR' }[g[1]];
+    what = `${g[2]}-input ${op} gate` + (g[3] ? ` with ${g[3].length === 1 ? 'one input' : 'two inputs'} inverted` : '') + '.';
+  }
+  if (!what && (g = base.match(/^([ao])((?:\d(?:bb)?)+)(b?)([oa])(i?)$/))) {
+    const outerAnd = g[1] === 'o', groups = [...g[2].matchAll(/(\d)(bb)?/g)];
+    const terms = groups.map((x, i) => {
+      const L = 'ABCDE'[i], n = +x[1];
+      let ins = Array.from({ length: n }, (_, j) => (x[2] ? '!' : '') + L + (j + 1));
+      if (g[3] && i === groups.length - 1) ins = ins.map(s => '!' + s);
+      return n > 1 ? '(' + ins.join(outerAnd ? ' + ' : ' · ') + ')' : ins[0];
+    });
+    const f = terms.join(outerAnd ? ' · ' : ' + ');
+    const name = (outerAnd ? 'OR-AND' : 'AND-OR') + (g[5] ? '-INVERT' : '');
+    what = `Compound ${name} gate: ${g[5] ? 'Y = !(' + f + ')' : 'X = ' + f}. One cell does the work of several simple gates.`;
+  }
+  // the _N suffix is drive strength, except on spacer cells where it is the width in 0.46 µm sites
+  const size = drive == null ? '' : ['decap', 'fill', 'tapvpwrvgnd'].includes(base)
+    ? ` ${drive} site${drive > 1 ? 's' : ''} wide.`
+    : ` Drive strength ${drive} (bigger means larger output transistors that can push more load).`;
+  return { base, what: what || 'Standard logic cell.', size };
+}
 
 const SCENES = {
-  array: { data: 'd-array', ex: 12, desc: '1.96 mm die. The 64 PE macros (blue blocks) sit on a 220 µm grid ' +
-           'under the top-level power grid: met4 straps (gold), via4 stacks and wide met5 rails (orange).' },
-  tile:  { data: 'd-tile', ex: 8, desc: 'One 180 µm PE macro, wiring only: met1 to met4 and the vias between ' +
-           'them. met4 carries the PE\'s power straps, the layer the top level connects down to.' },
-  closeup: { data: 'd-closeup', ex: 1, desc: 'A 16 µm window at the PE\'s centre, true height. Transistors ' +
-           '(green diffusion, red poly gates) at the bottom, then contacts, li1 and the metal stack.' },
+  array:   { ex: 10, desc: 'The whole 1.96 mm block. 64 identical PE macros on a 220 µm grid, the top-level wiring and registers in the channels between them, and the chip-level met4/met5 power grid on top.' },
+  pe:      { ex: 3,  desc: 'One 180 µm processing element (pe.sv), every layer from the transistors to met4. Hover anything to see what it is.' },
+  closeup: { ex: 1,  desc: 'A 25 µm patch of the PE’s adder logic at true height. Drag Peel to the left to strip the layers off one by one. Under li1 are the transistors: each red poly stripe crossing green diffusion is one.' },
 };
+const GRID = { n: 8, margin: 120, pitch: 220, tile: 180 };
+const ARRAY_PE_LAYERS = { full: ['met1', 'met2', 'via2', 'met3', 'via3', 'met4'], light: ['met3', 'via3', 'met4'] };
+const PHYS = new Set(['filler', 'decap', 'tap']);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// ---------------------------------------------------------------- renderer
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;
 document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#07090d');
-const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 1e6);
+{
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(256, 200, 20, 256, 256, 380);
+  grd.addColorStop(0, '#1a2233'); grd.addColorStop(1, '#05070b');
+  g.fillStyle = grd; g.fillRect(0, 0, 512, 512);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = tex;
+}
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.add(new THREE.HemisphereLight('#dbe4ff', '#1b1f27', 0.35));
+const sun = new THREE.DirectionalLight('#fff6e8', 2.4);
+sun.castShadow = true;
+scene.add(sun, sun.target);
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.01, 1e5);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI * 0.48;
+controls.screenSpacePanning = true;
 
-scene.add(new THREE.HemisphereLight('#dfe8ff', '#20242c', 1.1));
-const sun = new THREE.DirectionalLight('#ffffff', 2.2);
-sun.position.set(1, 2, 1.4);
-scene.add(sun);
-const fill = new THREE.DirectionalLight('#9fb4ff', 0.6);
-fill.position.set(-1.5, 0.8, -1);
-scene.add(fill);
+let composer, gtao;
+const quality = { mode: 'high', pr: 1 };
+function makeComposer() {
+  composer?.dispose();
+  const ultra = quality.mode === 'ultra';
+  quality.pr = quality.mode === 'fast' ? 1 : Math.min(devicePixelRatio * (ultra ? 1.5 : 1), ultra ? 3 : 2);
+  renderer.setPixelRatio(quality.pr);
+  const rt = new THREE.WebGLRenderTarget(innerWidth * quality.pr, innerHeight * quality.pr,
+    { type: THREE.HalfFloatType, samples: quality.mode === 'fast' ? 0 : 4 });
+  composer = new EffectComposer(renderer, rt);
+  composer.setPixelRatio(quality.pr);
+  composer.addPass(new RenderPass(scene, camera));
+  gtao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+  gtao.normalMaterial.flatShading = true;
+  gtao.enabled = quality.mode !== 'fast';
+  composer.addPass(gtao);
+  composer.addPass(new OutputPass());
+  composer.setSize(innerWidth, innerHeight);
+  tuneAO();
+  sun.shadow.mapSize.setScalar(ultra ? 8192 : 4096);
+  sun.shadow.map?.dispose();
+  sun.shadow.map = null;
+  sun.castShadow = quality.mode !== 'fast';
+  shadowsDirty();
+}
+function tuneAO(pass = gtao) {
+  const e = +$('ex').value || 1;
+  pass?.updateGtaoMaterial({ radius: 0.9 * e, thickness: 1.2 * e, distanceExponent: 1.4, scale: 1.1,
+                             samples: quality.mode === 'ultra' ? 24 : 16 });
+}
 
-let group = null, meshes = {}, current = null;
+// ---------------------------------------------------------------- data
+async function unpack(id) {
+  const bin = atob($(id).textContent.trim());
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).json();
+}
 
-// Extrude one layer's polygons into a single BufferGeometry (y is up).
-function buildLayer(polys, z0, z1, W, H) {
-  const pos = [], nor = [];
-  const push = (a, b, c, n) => { pos.push(...a, ...b, ...c); nor.push(...n, ...n, ...n); };
-  for (const flat of polys) {
-    const pts = [];
-    for (let i = 0; i < flat.length; i += 2) pts.push(new THREE.Vector2(flat[i] - W / 2, -(flat[i + 1] - H / 2)));
-    if (pts.length < 3) continue;
-    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
-    const tris = THREE.ShapeUtils.triangulateShape(pts, []);
-    for (const [a, b, c] of tris) {
-      push([pts[a].x, z1, pts[a].y], [pts[c].x, z1, pts[c].y], [pts[b].x, z1, pts[b].y], [0, 1, 0]);
-      push([pts[a].x, z0, pts[a].y], [pts[b].x, z0, pts[b].y], [pts[c].x, z0, pts[c].y], [0, -1, 0]);
-    }
-    for (let i = 0; i < pts.length; i++) {
-      const p = pts[i], q = pts[(i + 1) % pts.length];
-      const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
-      const n = [dy / len, 0, -dx / len];
-      push([p.x, z0, p.y], [q.x, z0, q.y], [q.x, z1, q.y], n);
-      push([p.x, z0, p.y], [q.x, z1, q.y], [p.x, z1, p.y], n);
+// Extrude one layer's rectangles and polygons into an indexed geometry
+// (positions only; materials use flat shading). y is up, v = -y_layout.
+function extrude(L, z0, z1, ox, oy) {
+  const R = L.r, polys = [];
+  let nv = (R.length / 4) * 8, ni = (R.length / 4) * 30;
+  for (const rings of L.p) {
+    const toV = f => { const a = []; for (let i = 0; i < f.length; i += 2) a.push(new THREE.Vector2(f[i] - ox, -(f[i + 1] - oy))); return a; };
+    const contour = toV(rings[0]);
+    if (contour.length < 3) continue;
+    if (THREE.ShapeUtils.isClockWise(contour)) contour.reverse();
+    const holes = rings.slice(1).map(toV).filter(h => h.length >= 3);
+    for (const h of holes) if (!THREE.ShapeUtils.isClockWise(h)) h.reverse();
+    let faces;
+    try { faces = THREE.ShapeUtils.triangulateShape(contour, holes); } catch { continue; }
+    const all = [contour, ...holes], n = all.reduce((s, r) => s + r.length, 0);
+    polys.push({ all, faces });
+    nv += 2 * n; ni += faces.length * 3 + n * 6;
+  }
+  const pos = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+  let v = 0, k = 0;
+  const vert = (x, y, z) => { pos[v * 3] = x; pos[v * 3 + 1] = y; pos[v * 3 + 2] = z; return v++; };
+  const wall = (b0, t0, b1, t1) => { idx[k++] = b0; idx[k++] = t1; idx[k++] = b1; idx[k++] = b0; idx[k++] = t0; idx[k++] = t1; };
+  for (let i = 0; i < R.length; i += 4) {
+    const u0 = R[i] - ox, u1 = R[i + 2] - ox, w0 = -(R[i + 3] - oy), w1 = -(R[i + 1] - oy);
+    const c = [[u0, w0], [u1, w0], [u1, w1], [u0, w1]];
+    const B = c.map(p => vert(p[0], z0, p[1])), T = c.map(p => vert(p[0], z1, p[1]));
+    idx[k++] = T[0]; idx[k++] = T[2]; idx[k++] = T[1]; idx[k++] = T[0]; idx[k++] = T[3]; idx[k++] = T[2];
+    for (let j = 0; j < 4; j++) wall(B[j], T[j], B[(j + 1) % 4], T[(j + 1) % 4]);
+  }
+  for (const { all, faces } of polys) {
+    const B = [], T = [];
+    for (const r of all) for (const p of r) B.push(vert(p.x, z0, p.y));
+    for (const r of all) for (const p of r) T.push(vert(p.x, z1, p.y));
+    for (const [a, b, c] of faces) { idx[k++] = T[a]; idx[k++] = T[c]; idx[k++] = T[b]; }
+    let base = 0;
+    for (const r of all) {
+      for (let j = 0; j < r.length; j++) { const p = base + j, q = base + (j + 1) % r.length; wall(B[p], T[p], B[q], T[q]); }
+      base += r.length;
     }
   }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('position', new THREE.BufferAttribute(pos.subarray(0, v * 3), 3));
+  g.setIndex(new THREE.BufferAttribute(idx.subarray(0, k), 1));
+  g.computeBoundingBox(); g.computeBoundingSphere();
   return g;
 }
 
-function peBlocks() {        // the 64 macro footprints, from make_config.py's grid
-  const polys = [];
-  for (let k = 0; k < 8; k++) for (let n = 0; n < 8; n++) {
-    const x = 120 + n * 220, y = 120 + (7 - k) * 220;
-    polys.push([x, y, x + 180, y, x + 180, y + 180, x, y + 180]);
+// ---------------------------------------------------------------- materials
+const mats = {};
+for (const l of ORDER) mats[l] = new THREE.MeshStandardMaterial({ flatShading: true });
+function applyPalette() {
+  const real = $('palette').value === 'real';
+  for (const l of ORDER) {
+    const [, , fc, rc, kind] = LAYERS[l], m = mats[l];
+    m.color.set(real ? rc : fc);
+    m.metalness = kind === 'metal' ? (real ? 1.0 : 0.75) : kind === 'via' ? 0.9 : 0.05;
+    m.roughness = kind === 'metal' || kind === 'via' ? (real ? 0.32 : 0.34) : 0.6;
+    m.envMapIntensity = kind === 'metal' || kind === 'via' ? (real ? 0.55 : 1.1) : 0.6;
+    m.transparent = l === 'nwell'; m.opacity = l === 'nwell' ? 0.55 : 1;
   }
-  return polys;
+  if (mode === 'layers') buildLegend();
+  dirty = true;
 }
+const cellMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05, envMapIntensity: 0.6 });
+const subMat = new THREE.MeshStandardMaterial({ color: '#141922', roughness: 0.9, metalness: 0 });
 
-function load(name) {
+// ---------------------------------------------------------------- scene state
+let D = {};                         // decoded data
+const geo = {};                     // geometry cache: 'pe:met1', 'top:met1'
+const getGeo = (src, l) => geo[src + ':' + l] ??= src === 'pe'
+  ? extrude(D.tile.layers[l], LAYERS[l][0], LAYERS[l][1], 0, 0)
+  : extrude(D.array.layers[l], LAYERS[l][0], LAYERS[l][1], 980, 980);
+let root = null, layerObjs = {}, cellObj = null, current = null, mode = 'layers', dirty = true;
+let offset = 90;                    // scene x/y of the world origin (µm)
+const hiddenLayers = new Set(), hiddenRoles = new Set();
+let cellIndex = null;               // spatial lookup for hover
+
+function peOrigin(k, n) { return [GRID.margin + n * GRID.pitch, GRID.margin + (GRID.n - 1 - k) * GRID.pitch]; }
+
+function build(name) {
   current = name;
-  const s = SCENES[name];
-  const d = JSON.parse(document.getElementById(s.data).textContent);
-  if (name === 'array') d.layers.pe = peBlocks();
-  const [W, H] = d.size;
-  if (group) { scene.remove(group); group.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
-  group = new THREE.Group();
-  meshes = {};
-  for (const l of ORDER) {
-    if (!d.layers[l] || !d.layers[l].length) continue;
-    const [z0, z1, color] = STACK[l];
-    const mat = new THREE.MeshStandardMaterial({
-      color, metalness: l.startsWith('met') || l.includes('via') || l.includes('con') ? 0.55 : 0.1,
-      roughness: 0.38, transparent: l === 'nwell' || l === 'pe', opacity: l === 'nwell' ? 0.45 : l === 'pe' ? 0.9 : 1,
-    });
-    const m = new THREE.Mesh(buildLayer(d.layers[l], z0, z1, W, H), mat);
-    meshes[l] = m;
-    group.add(m);
-  }
-  // substrate slab
-  const sub = new THREE.Mesh(new THREE.BoxGeometry(W, 0.5, H),
-                             new THREE.MeshStandardMaterial({ color: '#11151c', roughness: 0.9 }));
-  sub.position.y = -0.55;
-  meshes.substrate = sub;
-  group.add(sub);
-  scene.add(group);
+  if (root) { scene.remove(root); root.traverse(o => { if (o.isInstancedMesh) o.dispose(); }); }
+  cellObj?.geometry.dispose();
+  root = new THREE.Group();
+  layerObjs = {};
+  const add = (l, obj) => { obj.userData.layer = l; obj.castShadow = obj.receiveShadow = true; (layerObjs[l] ??= []).push(obj); root.add(obj); };
 
-  document.querySelectorAll('[data-scene]').forEach(b => b.classList.toggle('on', b.dataset.scene === name));
-  document.getElementById('desc').textContent = s.desc;
-  ex.value = s.ex;
-  buildLayerList();
+  if (name === 'array') {
+    offset = 980;
+    for (const l of ORDER) if (D.array.layers[l] && (D.array.layers[l].r.length || D.array.layers[l].p.length)) add(l, new THREE.Mesh(getGeo('top', l), mats[l]));
+    const m4 = new THREE.Matrix4();
+    for (const l of ARRAY_PE_LAYERS[$('detail').value]) {
+      const im = new THREE.InstancedMesh(getGeo('pe', l), mats[l], 64);
+      let i = 0;
+      for (let k = 0; k < 8; k++) for (let n = 0; n < 8; n++) {
+        const [x, y] = peOrigin(k, n);
+        im.setMatrixAt(i++, m4.makeTranslation(x - 980, 0, -(y - 980)));
+      }
+      im.computeBoundingBox(); im.computeBoundingSphere();
+      add(l, im);
+    }
+  } else {
+    offset = 90;
+    for (const l of ORDER) {
+      const L = D.tile.layers[l];
+      if (!L || !(L.r.length || L.p.length)) continue;
+      const m = new THREE.Mesh(getGeo('pe', l), mats[l]);
+      m.position.set(-90, 0, 90);
+      add(l, m);
+    }
+  }
+  const size = name === 'array' ? 1960 : 180;
+  const sub = new THREE.Mesh(new THREE.BoxGeometry(size, 1, size), subMat);
+  sub.userData.sub = true; sub.receiveShadow = true;
+  root.add(sub);
+  layerObjs.__sub = [sub];
+
+  buildCells(name);
+  scene.add(root);
+  frameShadow(size);
+  applyLayerVisibility();
   applyView();
-  const r = Math.max(W, H);
-  camera.position.set(r * 0.55, r * 0.75, r * 0.95);
-  camera.near = r / 2000; camera.far = r * 20; camera.updateProjectionMatrix();
-  controls.target.set(0, 0, 0);
-  controls.update();
+  buildLegend();
+  scheduleBVH();
 }
 
-function buildLayerList() {
-  const box = document.getElementById('layers');
-  box.innerHTML = '';
-  for (const l of ORDER) {
-    if (!meshes[l]) continue;
-    const [z0, z1, color, label] = STACK[l];
-    const lab = document.createElement('label');
-    lab.innerHTML = `<input type="checkbox" checked><span class="sw" style="background:${color}"></span>` +
-                    `${label}<span class="z">${z0.toFixed(2)}–${z1.toFixed(2)} µm</span>`;
-    lab.querySelector('input').onchange = e => { meshes[l].visible = e.target.checked; };
-    box.appendChild(lab);
+// ---------------------------------------------------------------- cells
+function cellList(name) {
+  // returns [{c, data, ox, oy, pe}] entries in scene coordinates
+  const out = [];
+  if (name === 'array') {
+    const pe = D.cpe.cells.filter(c => !PHYS.has(D.cpe.roles[c[5]]));
+    for (let k = 0; k < 8; k++) for (let n = 0; n < 8; n++) {
+      const [x, y] = peOrigin(k, n);
+      for (const c of pe) out.push({ c, data: D.cpe, ox: x, oy: y, pe: [k, n] });
+    }
+    for (const c of D.ctop.cells) out.push({ c, data: D.ctop, ox: 0, oy: 0 });
+  } else {
+    for (const c of D.cpe.cells) out.push({ c, data: D.cpe, ox: 0, oy: 0 });
   }
+  return out;
 }
 
-const ex = document.getElementById('ex'), explode = document.getElementById('explode');
+let cellEntries = [];
+function buildCells(name) {
+  cellEntries = cellList(name);
+  const box = new THREE.BoxGeometry(1, 1, 1).translate(0.5, 0.5, 0.5);
+  cellObj = new THREE.InstancedMesh(box, cellMat, cellEntries.length);
+  cellObj.castShadow = cellObj.receiveShadow = true;
+  const col = new THREE.Color();
+  cellEntries.forEach((e, i) => cellObj.setColorAt(i, col.set(ROLES[e.data.roles[e.c[5]]]?.[1] ?? '#888')));
+  updateCellMatrices();
+  root.add(cellObj);
+  // hover lookup: per-source bucket grids in layout coordinates
+  cellIndex = { pe: gridOf(D.cpe.cells), top: name === 'array' ? gridOf(D.ctop.cells) : null };
+}
+function updateCellMatrices() {
+  const m4 = new THREE.Matrix4(), inset = 0.04;
+  cellEntries.forEach((e, i) => {
+    const [x, y, w, h, , r] = e.c;
+    if (hiddenRoles.has(e.data.roles[r])) m4.makeScale(0, 0, 0);
+    else {
+      const X = e.ox + x + inset - offset, Z = -(e.oy + y + h - inset - offset);
+      m4.makeScale(Math.max(w - 2 * inset, 0.05), CELL_TOP, Math.max(h - 2 * inset, 0.05)).setPosition(X, 0, Z);
+    }
+    cellObj.setMatrixAt(i, m4);
+  });
+  cellObj.instanceMatrix.needsUpdate = true;
+  cellObj.computeBoundingBox(); cellObj.computeBoundingSphere();
+  shadowsDirty();
+}
+function gridOf(cells, b = 6) {
+  const g = new Map();
+  cells.forEach((c, i) => {
+    for (let bx = Math.floor(c[0] / b); bx <= Math.floor((c[0] + c[2]) / b); bx++)
+      for (let by = Math.floor(c[1] / b); by <= Math.floor((c[1] + c[3]) / b); by++) {
+        const key = bx * 100000 + by;
+        (g.get(key) ?? g.set(key, []).get(key)).push(i);
+      }
+  });
+  return { g, b, cells };
+}
+function findCell(grid, x, y) {
+  const list = grid.g.get(Math.floor(x / grid.b) * 100000 + Math.floor(y / grid.b)) ?? [];
+  for (const i of list) { const c = grid.cells[i]; if (x >= c[0] && x <= c[0] + c[2] && y >= c[1] && y <= c[1] + c[3]) return i; }
+  return -1;
+}
+
+// ---------------------------------------------------------------- view state
+function applyLayerVisibility() {
+  const fn = mode === 'functions';
+  for (const [l, objs] of Object.entries(layerObjs)) for (const o of objs) o.visible = !hiddenLayers.has(l);
+  cellObj.visible = fn;
+  shadowsDirty();
+}
 function applyView() {
-  const e = +ex.value, sep = +explode.value / 100;
-  document.getElementById('exv').textContent = e;
-  document.getElementById('expv').textContent = explode.value;
-  let i = 0;
-  for (const l of ORDER) {          // explode: lift each layer ~1.2 µm per step
-    const m = meshes[l];
-    if (!m) continue;
-    m.scale.y = e;
-    m.position.y = sep * i * 1.2 * e;
-    i++;
+  const e = +$('ex').value, sep = +$('explode').value / 100;
+  $('exv').textContent = e; $('expv').textContent = $('explode').value;
+  const gap = sep * Math.max(1.1 * e, 3);
+  let i = 1;
+  for (const l of ORDER) {
+    for (const o of layerObjs[l] ?? []) { o.scale.y = e; o.position.y = gap * i; }
+    if (layerObjs[l]) i++;
   }
-  meshes.substrate.scale.y = e;
-  meshes.substrate.position.y = -0.55 * e;
+  cellObj.scale.y = e;
+  const sub = layerObjs.__sub[0];
+  sub.scale.y = 0.6 * e; sub.position.y = -0.3 * e - 0.3 * 0.6 * e - 0.01;
+  tuneAO();
+  shadowsDirty();
 }
-ex.oninput = applyView;
-explode.oninput = applyView;
+function shadowsDirty() { renderer.shadowMap.needsUpdate = true; dirty = true; }
+function frameShadow(size) {
+  const R = size * 0.75, s = sun.shadow.camera;
+  sun.position.set(-0.55 * size, 1.25 * size, 0.6 * size);
+  sun.target.position.set(0, 0, 0);
+  s.left = -R; s.right = R; s.top = R; s.bottom = -R; s.near = size * 0.05; s.far = size * 3;
+  s.updateProjectionMatrix();
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = size / sun.shadow.mapSize.x * 0.8;
+}
+// keep the model centred in the space right of the control panel
+function fitView() {
+  camera.aspect = innerWidth / innerHeight;
+  const shift = innerWidth > 700 ? -Math.round($('panel').offsetWidth / 2 + 7) : 0;
+  if (shift) camera.setViewOffset(innerWidth, innerHeight, shift, 0, innerWidth, innerHeight);
+  else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+function frameCamera() {
+  if (current === 'closeup') {
+    // a logic-dense patch of the adder, at layout (127.5, 52.5) µm
+    controls.target.set(37.5, 0.6, 37.5);
+    camera.position.set(49.5, 17.6, 60.5);
+    camera.near = 0.05; camera.far = 2000;
+  } else {
+    // back off when the free space beside the panel is narrower than at 1280 x 800
+    const free = (innerWidth - (innerWidth > 700 ? $('panel').offsetWidth + 14 : 0)) / innerHeight;
+    const R = (current === 'array' ? 1960 : 180) * (free < 1 ? 1.6 / free : Math.max(1, 1.2 / free));
+    controls.target.set(0, 0, R * 0.04);
+    camera.position.set(0.5 * R, 0.95 * R, 1.08 * R);
+    camera.near = R / 800; camera.far = R * 12;
+  }
+  controls.minDistance = current === 'array' ? 20 : 2;
+  controls.maxDistance = current === 'array' ? 8000 : 900;
+  camera.updateProjectionMatrix();
+  controls.update();
+  dirty = true;
+}
 
-document.querySelectorAll('[data-scene]').forEach(b => b.onclick = () => load(b.dataset.scene));
-const rot = document.getElementById('rotate');
-rot.onclick = () => { controls.autoRotate = !controls.autoRotate; rot.classList.toggle('on', controls.autoRotate); };
-document.getElementById('shot').onclick = () => {
-  renderer.render(scene, camera);
-  const a = document.createElement('a');
-  a.download = `systolic-3d-${current}.png`;
-  a.href = renderer.domElement.toDataURL('image/png');
-  a.click();
-};
-document.getElementById('toggle').onclick = () => document.getElementById('panel').classList.toggle('hidden');
+// ---------------------------------------------------------------- legend / panel
+function buildLegend() {
+  const box = $('legend');
+  box.innerHTML = '';
+  if (mode === 'layers') {
+    $('legend-title').innerHTML = 'Layers <small>click a name for details</small>';
+    for (const l of [...ORDER].reverse()) {
+      if (!layerObjs[l]) continue;
+      const [z0, z1, fc, rc, , label] = LAYERS[l];
+      box.appendChild(legendRow($('palette').value === 'real' ? rc : fc, label, `${z0.toFixed(2)}–${z1.toFixed(2)} µm`, !hiddenLayers.has(l),
+        on => { on ? hiddenLayers.delete(l) : hiddenLayers.add(l); applyLayerVisibility(); },
+        () => showLayer(l)));
+    }
+  } else {
+    $('legend-title').innerHTML = 'Cell functions <small>count · share of area</small>';
+    const count = {}, area = {};
+    let total = 0;
+    for (const e of cellEntries) {
+      const r = e.data.roles[e.c[5]], a = e.c[2] * e.c[3];
+      count[r] = (count[r] ?? 0) + 1; area[r] = (area[r] ?? 0) + a; total += a;
+    }
+    for (const r of ROLE_ORDER) {
+      if (!count[r]) continue;
+      const [label, color] = ROLES[r];
+      box.appendChild(legendRow(color, label, `${count[r].toLocaleString()} · ${(100 * area[r] / total).toFixed(0)}%`,
+        !hiddenRoles.has(r), on => { on ? hiddenRoles.delete(r) : hiddenRoles.add(r); updateCellMatrices(); },
+        () => showRole(r)));
+    }
+  }
+}
+function legendRow(color, label, note, checked, onToggle, onClick) {
+  const el = document.createElement('label');
+  el.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''}><span class="sw" style="background:${color}"></span><span>${label}</span><span class="n">${note}</span>`;
+  el.querySelector('input').onchange = e => onToggle(e.target.checked);
+  el.querySelector('span:nth-of-type(2)').onclick = e => { e.preventDefault(); onClick(); };
+  return el;
+}
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+function setScene(name) {
+  document.querySelectorAll('[data-scene]').forEach(b => b.classList.toggle('on', b.dataset.scene === name));
+  $('desc').textContent = SCENES[name].desc;
+  $('ex').value = SCENES[name].ex;
+  $('detail-row').style.display = name === 'array' ? '' : 'none';
+  build(name);
+  setMode(mode);
+  frameCamera();
+  unpin();
+}
+// Peel: show the layers up to the chosen one (-1 = none, as in Cell functions mode)
+function applyPeel() {
+  const present = ORDER.filter(l => layerObjs[l]), top = Math.min(+$('peel').value, present.length - 1);
+  hiddenLayers.clear();
+  present.slice(top + 1).forEach(l => hiddenLayers.add(l));
+  $('peelv').textContent = top < 0 ? 'none' : top === present.length - 1 ? 'all' : present[top] === 'via' ? 'via1' : present[top];
+  applyLayerVisibility();
+  buildLegend();
+}
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  const n = ORDER.filter(l => layerObjs[l]).length - 1;
+  $('peel').max = n;
+  $('peel').value = m === 'functions' ? -1 : n;
+  applyPeel();
+}
+
+// ---------------------------------------------------------------- hover / info
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let pinned = false, hoverQueued = false, lastEvent = null;
+const hl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1).translate(0.5, 0.5, 0.5)),
+  new THREE.LineBasicMaterial({ color: '#f2c94c', depthTest: false, transparent: true }));
+hl.renderOrder = 999; hl.visible = false; scene.add(hl);
+
+function bvhReady(o) { return !!o.geometry.boundsTree; }
+let bvhQueue = [];
+function scheduleBVH() {
+  bvhQueue = Object.entries(layerObjs).filter(([l]) => l !== '__sub').flatMap(([, objs]) => objs).map(o => o.geometry);
+  const step = () => {
+    const g = bvhQueue.shift();
+    if (!g) return;
+    if (!g.boundsTree) g.computeBoundsTree();
+    setTimeout(step, 0);
+  };
+  setTimeout(step, 300);
+}
+
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  let point = null, layer = null;
+  if (mode === 'functions') {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -CELL_TOP * +$('ex').value);
+    point = ray.ray.intersectPlane(plane, new THREE.Vector3());
+  }
+  const objs = Object.entries(layerObjs).filter(([l]) => l !== '__sub').flatMap(([, o]) => o)
+    .filter(o => o.visible && bvhReady(o));
+  const hit = objs.length ? ray.intersectObjects(objs, false)[0] : null;
+  if (hit && (!point || hit.distance < ray.ray.origin.distanceTo(point))) { point = hit.point; layer = hit.object.userData.layer; }
+  if (!point) {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    point = ray.ray.intersectPlane(plane, new THREE.Vector3());
+  }
+  if (!point) { hideInfo(); return; }
+  describe(point.x + offset, -point.z + offset, layer);
+}
+
+function describe(x, y, layer) {
+  const parts = [];
+  let cellInfo = null, peLabel = null, box = null;
+  if (current === 'array') {
+    const n = Math.floor((x - GRID.margin) / GRID.pitch), kk = Math.floor((y - GRID.margin) / GRID.pitch);
+    const lx = x - GRID.margin - n * GRID.pitch, ly = y - GRID.margin - kk * GRID.pitch;
+    if (n >= 0 && n < 8 && kk >= 0 && kk < 8 && lx <= GRID.tile && ly <= GRID.tile) {
+      const k = 7 - kk;
+      peLabel = { k, n };
+      const i = findCell(cellIndex.pe, lx, ly);
+      if (i >= 0) { const [ox, oy] = peOrigin(k, n); cellInfo = { c: D.cpe.cells[i], data: D.cpe }; box = [ox, oy]; }
+    } else if (x >= 0 && y >= 0 && x <= 1960 && y <= 1960) {
+      const i = findCell(cellIndex.top, x, y);
+      if (i >= 0) { cellInfo = { c: D.ctop.cells[i], data: D.ctop }; box = [0, 0]; }
+    }
+  } else if (x >= 0 && y >= 0 && x <= 180 && y <= 180) {
+    const i = findCell(cellIndex.pe, x, y);
+    if (i >= 0) { cellInfo = { c: D.cpe.cells[i], data: D.cpe }; box = [0, 0]; }
+  }
+
+  if (layer) {
+    const [z0, z1, fc, , , label, what] = LAYERS[layer];
+    parts.push(`<div class="k">Pointing at</div><div class="t"><span class="dot" style="background:${fc}"></span>${label}<span class="m">${z0.toFixed(2)}–${z1.toFixed(2)} µm</span></div><p>${what}</p>`);
+  }
+  if (peLabel) {
+    parts.push(`<div class="k">Processing element</div><div class="t">PE[${peLabel.k}][${peLabel.n}]<span class="m">row ${peLabel.k}, column ${peLabel.n}</span></div>` +
+      `<p>Multiplies the activation arriving from the ${peLabel.n === 0 ? 'skew registers' : 'left'} by its stored weight and adds the partial sum from ${peLabel.k === 0 ? 'the tie-low cells (0)' : 'the PE above'}.</p>`);
+  }
+  if (cellInfo) {
+    const { c, data } = cellInfo, role = data.roles[c[5]], type = data.types[c[4]], detail = data.details[c[6]];
+    const [rl, rc, rd] = ROLES[role] ?? [role, '#888', ''];
+    const t = cellText(type);
+    const logic = ['mult', 'adder', 'select', 'wload', 'misc'].includes(role);
+    parts.push(`<div class="k">${layer ? 'Cell underneath' : 'Cell'}</div><div class="t"><span class="dot" style="background:${rc}"></span>${rl}</div>` +
+      (detail ? `<p>${logic ? 'Depends on ' : ''}<code>${detail}</code></p>` : '') +
+      `<p>${rd}</p><p><code>sky130_fd_sc_hd__${type}</code>: ${t.what}${t.size}</p>` +
+      `<p class="m">${c[7] ? 'instance ' + c[7] + ' · ' : ''}${c[2].toFixed(2)} × ${c[3].toFixed(2)} µm</p>`);
+    const [x0, y0, w, h] = c;
+    hl.position.set(box[0] + x0 - offset, 0, -(box[1] + y0 + h - offset));
+    hl.scale.set(w, (LAYERS.met1[1]) * +$('ex').value, h);
+    hl.visible = true;
+  } else hl.visible = false;
+  if (!parts.length) { hideInfo(); return; }
+  $('info').innerHTML = parts.join('');
+  $('info').hidden = false;
+  dirty = true;
+}
+function hideInfo() { if (pinned) return; $('info').hidden = true; if (hl.visible) { hl.visible = false; dirty = true; } }
+function showLayer(l) {
+  const [z0, z1, fc, , , label, what] = LAYERS[l];
+  $('info').innerHTML = `<div class="k">Layer</div><div class="t"><span class="dot" style="background:${fc}"></span>${label}<span class="m">${z0.toFixed(2)}–${z1.toFixed(2)} µm</span></div><p>${what}</p>`;
+  $('info').hidden = false; pin();
+}
+function showRole(r) {
+  const [label, color, what] = ROLES[r];
+  $('info').innerHTML = `<div class="k">Cell function</div><div class="t"><span class="dot" style="background:${color}"></span>${label}</div><p>${what}</p>`;
+  $('info').hidden = false; pin();
+}
+function pin() { pinned = true; $('info').classList.add('pinned'); $('unpin').disabled = false; }
+function unpin() { pinned = false; $('info').classList.remove('pinned'); $('unpin').disabled = true; hideInfo(); }
+
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 4) {
+    if (pinned) unpin(); else { pick(e); if (!$('info').hidden) pin(); }
+  }
+  downAt = null;
 });
-renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
-load('array');
+renderer.domElement.addEventListener('pointermove', e => {
+  lastEvent = e;
+  if (pinned || hoverQueued || e.buttons) return;
+  hoverQueued = true;
+  requestAnimationFrame(() => { hoverQueued = false; if (!pinned) pick(lastEvent); });
+});
+renderer.domElement.addEventListener('pointerleave', hideInfo);
+addEventListener('keydown', e => { if (e.key === 'Escape') unpin(); });
+
+// ---------------------------------------------------------------- capture
+function toast(msg, ms = 2500) { $('toast').textContent = msg; $('toast').style.display = 'block'; clearTimeout(toast.t); if (ms) toast.t = setTimeout(() => $('toast').style.display = 'none', ms); }
+async function capture(width) {
+  toast(`Rendering ${width} px…`, 0);
+  await new Promise(r => setTimeout(r, 50));
+  const h = Math.round(width / camera.aspect), hlWas = hl.visible;
+  hl.visible = false;
+  camera.clearViewOffset(); camera.updateProjectionMatrix();
+  renderer.setPixelRatio(1);
+  renderer.setSize(width, h, false);
+  const rt = new THREE.WebGLRenderTarget(width, h, { type: THREE.HalfFloatType, samples: width > 4000 ? 2 : 4 });
+  const comp = new EffectComposer(renderer, rt);
+  comp.setPixelRatio(1);
+  comp.addPass(new RenderPass(scene, camera));
+  const ao = new GTAOPass(scene, camera, width, h);
+  ao.normalMaterial.flatShading = true;
+  tuneAO(ao);
+  comp.addPass(ao);
+  comp.addPass(new OutputPass());
+  comp.setSize(width, h);
+  renderer.shadowMap.needsUpdate = true;
+  let blob = null;
+  try {
+    comp.render();
+    blob = await new Promise(r => renderer.domElement.toBlob(r, 'image/png'));
+  } catch (err) { console.error(err); }
+  ao.dispose(); comp.dispose();
+  renderer.setPixelRatio(quality.pr);
+  renderer.setSize(innerWidth, innerHeight, false);
+  composer.setSize(innerWidth, innerHeight);
+  fitView();
+  hl.visible = hlWas; dirty = true;
+  if (!blob) { toast('That size is too big for this GPU. Try 4K.'); return; }
+  const a = document.createElement('a');
+  a.download = `systolic-array-${current}-${mode}-${width}px.png`;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast(`Saved ${width} × ${h} PNG`);
+}
+
+// ---------------------------------------------------------------- wiring
+document.querySelectorAll('[data-scene]').forEach(b => b.onclick = () => setScene(b.dataset.scene));
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$('ex').oninput = applyView;
+$('peel').oninput = applyPeel;
+$('explode').oninput = applyView;
+$('palette').onchange = applyPalette;
+$('quality').onchange = () => { quality.mode = $('quality').value; makeComposer(); };
+$('detail').onchange = () => { build('array'); };
+$('rotate').onclick = () => { controls.autoRotate = !controls.autoRotate; controls.autoRotateSpeed = 0.6; $('rotate').classList.toggle('on', controls.autoRotate); };
+$('reset').onclick = frameCamera;
+$('shot4').onclick = () => capture(3840);
+$('shot8').onclick = () => capture(7680);
+$('unpin').onclick = unpin;
+$('guide-btn').onclick = () => $('guide').showModal();
+$('guide-close').onclick = () => $('guide').close();
+$('toggle').onclick = () => $('panel').classList.toggle('hidden');
+if (innerWidth <= 700) $('panel').classList.add('hidden');   // phones: model first, controls on tap
+
+let interacting = false, idle = null;
+controls.addEventListener('start', () => { interacting = true; if (gtao) gtao.enabled = false; clearTimeout(idle); });
+controls.addEventListener('end', () => {
+  interacting = false;
+  clearTimeout(idle);
+  idle = setTimeout(() => { if (gtao) gtao.enabled = quality.mode !== 'fast'; dirty = true; }, 220);
+});
+controls.addEventListener('change', () => { dirty = true; });
+addEventListener('resize', () => {
+  fitView();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); dirty = true;
+});
+
+function fillGuide() {
+  $('guide-layers').innerHTML = '<tr><th>Layer</th><th>Height</th><th>What it is</th></tr>' + ORDER.map(l => {
+    const [z0, z1, fc, , , label, what] = LAYERS[l];
+    return `<tr><td><span class="sw" style="background:${fc}"></span>${label}</td><td>${z0.toFixed(2)}–${z1.toFixed(2)} µm</td><td>${what}</td></tr>`;
+  }).reverse().join('');
+  $('guide-roles').innerHTML = '<tr><th>Colour</th><th>What it does here</th></tr>' + ROLE_ORDER.map(r => {
+    const [label, color, what] = ROLES[r];
+    return `<tr><td><span class="sw" style="background:${color}"></span>${label}</td><td>${what}</td></tr>`;
+  }).join('');
+}
+
+// ---------------------------------------------------------------- start
+(async () => {
+  const gl = renderer.getContext(), dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
+  // integrated GPUs manage High (~50 ms per still frame, AO is skipped while you drag);
+  // only software rendering falls back to Fast
+  const strong = /NVIDIA|GeForce|RTX|Radeon RX|Apple M\d (Pro|Max|Ultra)/i.test(gpu);
+  const software = /SwiftShader|llvmpipe|Software/i.test(gpu);
+  $('detail').value = strong ? 'full' : 'light';
+  quality.mode = software ? 'fast' : 'high';
+  $('quality').value = quality.mode;
+  $('loading').textContent = 'Unpacking layout data…';
+  [D.tile, D.array, D.cpe, D.ctop] = await Promise.all(['d-tile', 'd-array', 'd-cpe', 'd-ctop'].map(unpack));
+  $('loading').textContent = 'Building geometry…';
+  await new Promise(r => setTimeout(r, 20));
+  makeComposer();
+  fitView();
+  applyPalette();
+  fillGuide();
+  window.viewer = { THREE, scene, camera, controls, renderer, sun, mats, get composer() { return composer; } };
+  setScene('array');
+  setMode('layers');
+  $('loading').remove();
+  renderer.setAnimationLoop(() => {
+    if (controls.update()) dirty = true;
+    if (!dirty) return;
+    dirty = false;
+    composer.render();
+  });
+})().catch(err => { $('loading').textContent = 'Could not load the viewer: ' + err.message; console.error(err); });
 </script>
 </body>
 </html>

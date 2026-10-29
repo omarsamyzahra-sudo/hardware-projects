@@ -145,6 +145,23 @@ pins sits on the same clock tree, so the fix is a real I/O constraint
 `openlane/tiled/results/die.png` shows the 8x8 grid. `bash
 openlane/tiled/run_tiled.sh` reruns both stages (`pe` or `top` for one).
 
+### 3D viewer
+
+`openlane/viewer3d/` turns the final GDS and DEF into a three.js page
+(`../Systolic-Array-3D.html`, one file, three.js from jsDelivr). Every
+mask layer from diffusion to met5 is extruded to its SKY130 height, with
+the PE drawn once and instanced 64 times. A "cell functions" view colours
+each placed cell by what it does in the RTL (weight/activation/partial-sum
+register, multiplier or adder logic, skew/deskew, reset, hold fix…).
+`cells3d.py` works that out by tracing the placed netlist from the ports.
+Hovering shows the layer, cell, owning PE and register bit. There's also
+ambient occlusion, shadows and 4K/8K PNG export.
+
+```bash
+bash openlane/viewer3d/export3d.sh          # in WSL, after run_tiled.sh
+python openlane/viewer3d/build_viewer.py    # gzip + inline the data
+```
+
 ## Run it
 
 Source `env.sh` in Git Bash first (OSS CAD Suite, RISC-V GCC, Vivado bin).
