@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systolic Array 3D</title>
+<style>
+:root {
+  --bg: #07090d; --panel: rgba(18, 22, 30, .88); --line: #2a3140; --text: #e6e9ef;
+  --muted: #8b93a3; --accent: #e8c547;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+canvas { display: block; }
+#panel { position: absolute; top: 16px; left: 16px; width: 280px; max-height: calc(100% - 32px);
+  overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; backdrop-filter: blur(6px); }
+h1 { font-size: 16px; margin: 0 0 2px; }
+.sub { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  margin: 14px 0 6px; font-weight: 600; }
+.scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+button { background: #1a202b; color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 6px; font: inherit; font-size: 13px; cursor: pointer; }
+button:hover { border-color: #4a5468; }
+button.on { border-color: var(--accent); color: var(--accent); }
+#desc { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+.layers label { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: pointer;
+  font-size: 13px; }
+.layers .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.layers .z { margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+.row span:first-child { width: 78px; color: var(--muted); }
+.row input[type=range] { flex: 1; accent-color: var(--accent); }
+.row output { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.tools { display: flex; gap: 6px; margin-top: 10px; }
+.tools button { flex: 1; }
+#hint { position: absolute; right: 16px; bottom: 14px; color: var(--muted); font-size: 12px; }
+#toggle { display: none; position: absolute; top: 12px; left: 12px; z-index: 2; }
+@media (max-width: 640px) {
+  #panel { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 50%; }
+  #panel.hidden { display: none; }
+  #toggle { display: block; }
+  #hint { display: none; }
+}
+</style>
+</head>
+<body>
+<button id="toggle">Controls</button>
+<div id="panel">
+  <h1>8×8 systolic array, in 3D</h1>
+  <p class="sub">Real SKY130 layout from LibreLane, each layer at its process height.</p>
+  <div class="scenes">
+    <button data-scene="array">Array</button>
+    <button data-scene="tile">One PE</button>
+    <button data-scene="closeup">Close-up</button>
+  </div>
+  <p id="desc"></p>
+  <h2>Layers</h2>
+  <div class="layers" id="layers"></div>
+  <h2>View</h2>
+  <div class="row"><span>Height ×</span><input id="ex" type="range" min="1" max="80" step="1"><output id="exv"></output></div>
+  <div class="row"><span>Explode</span><input id="explode" type="range" min="0" max="100" step="1" value="0"><output id="expv">0</output></div>
+  <div class="tools">
+    <button id="rotate">Auto-rotate</button>
+    <button id="shot">Save PNG</button>
+  </div>
+</div>
+<div id="hint">Drag to orbit · right-drag to pan · scroll to zoom</div>
+
+/*DATA*/
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// SKY130 vertical stack in microns (bottom, top), approximate process values.
+// poly is lifted onto the diffusion so gates read clearly from above.
+const STACK = {
+  nwell: [-0.30, 0.00, '#2b2e52', 'n-well'],
+  diff:  [0.00, 0.12, '#3f9142', 'diffusion'],
+  tap:   [0.00, 0.12, '#2c6b30', 'well tap'],
+  poly:  [0.12, 0.30, '#c0392b', 'poly (gates)'],
+  licon: [0.12, 0.94, '#bfc5cc', 'licon'],
+  li1:   [0.94, 1.04, '#40b5c0', 'li1'],
+  mcon:  [1.04, 1.38, '#bfc5cc', 'mcon'],
+  met1:  [1.38, 1.74, '#4a7fe0', 'met1'],
+  via:   [1.74, 2.01, '#d0d4da', 'via'],
+  met2:  [2.01, 2.37, '#a95ad6', 'met2'],
+  via2:  [2.37, 2.79, '#d0d4da', 'via2'],
+  met3:  [2.79, 3.63, '#4fbf6a', 'met3'],
+  via3:  [3.63, 4.02, '#d0d4da', 'via3'],
+  met4:  [4.02, 4.87, '#e8c547', 'met4'],
+  via4:  [4.87, 5.37, '#d0d4da', 'via4'],
+  met5:  [5.37, 6.63, '#d9822b', 'met5'],
+  pe:    [0.00, 4.02, '#2f5d9a', 'PE macros (blocks)'],
+};
+const ORDER = Object.keys(STACK);
+
+const SCENES = {
+  array: { data: 'd-array', ex: 12, desc: '1.96 mm die. The 64 PE macros (blue blocks) sit on a 220 µm grid ' +
+           'under the top-level power grid: met4 straps (gold), via4 stacks and wide met5 rails (orange).' },
+  tile:  { data: 'd-tile', ex: 8, desc: 'One 180 µm PE macro, wiring only: met1 to met4 and the vias between ' +
+           'them. met4 carries the PE\'s power straps, the layer the top level connects down to.' },
+  closeup: { data: 'd-closeup', ex: 1, desc: 'A 16 µm window at the PE\'s centre, true height. Transistors ' +
+           '(green diffusion, red poly gates) at the bottom, then contacts, li1 and the metal stack.' },
+};
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#07090d');
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 1e6);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight('#dfe8ff', '#20242c', 1.1));
+const sun = new THREE.DirectionalLight('#ffffff', 2.2);
+sun.position.set(1, 2, 1.4);
+scene.add(sun);
+const fill = new THREE.DirectionalLight('#9fb4ff', 0.6);
+fill.position.set(-1.5, 0.8, -1);
+scene.add(fill);
+
+let group = null, meshes = {}, current = null;
+
+// Extrude one layer's polygons into a single BufferGeometry (y is up).
+function buildLayer(polys, z0, z1, W, H) {
+  const pos = [], nor = [];
+  const push = (a, b, c, n) => { pos.push(...a, ...b, ...c); nor.push(...n, ...n, ...n); };
+  for (const flat of polys) {
+    const pts = [];
+    for (let i = 0; i < flat.length; i += 2) pts.push(new THREE.Vector2(flat[i] - W / 2, -(flat[i + 1] - H / 2)));
+    if (pts.length < 3) continue;
+    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
+    const tris = THREE.ShapeUtils.triangulateShape(pts, []);
+    for (const [a, b, c] of tris) {
+      push([pts[a].x, z1, pts[a].y], [pts[c].x, z1, pts[c].y], [pts[b].x, z1, pts[b].y], [0, 1, 0]);
+      push([pts[a].x, z0, pts[a].y], [pts[b].x, z0, pts[b].y], [pts[c].x, z0, pts[c].y], [0, -1, 0]);
+    }
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
+      const n = [dy / len, 0, -dx / len];
+      push([p.x, z0, p.y], [q.x, z0, q.y], [q.x, z1, q.y], n);
+      push([p.x, z0, p.y], [q.x, z1, q.y], [p.x, z1, p.y], n);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return g;
+}
+
+function peBlocks() {        // the 64 macro footprints, from make_config.py's grid
+  const polys = [];
+  for (let k = 0; k < 8; k++) for (let n = 0; n < 8; n++) {
+    const x = 120 + n * 220, y = 120 + (7 - k) * 220;
+    polys.push([x, y, x + 180, y, x + 180, y + 180, x, y + 180]);
+  }
+  return polys;
+}
+
+function load(name) {
+  current = name;
+  const s = SCENES[name];
+  const d = JSON.parse(document.getElementById(s.data).textContent);
+  if (name === 'array') d.layers.pe = peBlocks();
+  const [W, H] = d.size;
+  if (group) { scene.remove(group); group.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
+  group = new THREE.Group();
+  meshes = {};
+  for (const l of ORDER) {
+    if (!d.layers[l] || !d.layers[l].length) continue;
+    const [z0, z1, color] = STACK[l];
+    const mat = new THREE.MeshStandardMaterial({
+      color, metalness: l.startsWith('met') || l.includes('via') || l.includes('con') ? 0.55 : 0.1,
+      roughness: 0.38, transparent: l === 'nwell' || l === 'pe', opacity: l === 'nwell' ? 0.45 : l === 'pe' ? 0.9 : 1,
+    });
+    const m = new THREE.Mesh(buildLayer(d.layers[l], z0, z1, W, H), mat);
+    meshes[l] = m;
+    group.add(m);
+  }
+  // substrate slab
+  const sub = new THREE.Mesh(new THREE.BoxGeometry(W, 0.5, H),
+                             new THREE.MeshStandardMaterial({ color: '#11151c', roughness: 0.9 }));
+  sub.position.y = -0.55;
+  meshes.substrate = sub;
+  group.add(sub);
+  scene.add(group);
+
+  document.querySelectorAll('[data-scene]').forEach(b => b.classList.toggle('on', b.dataset.scene === name));
+  document.getElementById('desc').textContent = s.desc;
+  ex.value = s.ex;
+  buildLayerList();
+  applyView();
+  const r = Math.max(W, H);
+  camera.position.set(r * 0.55, r * 0.75, r * 0.95);
+  camera.near = r / 2000; camera.far = r * 20; camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+
+function buildLayerList() {
+  const box = document.getElementById('layers');
+  box.innerHTML = '';
+  for (const l of ORDER) {
+    if (!meshes[l]) continue;
+    const [z0, z1, color, label] = STACK[l];
+    const lab = document.createElement('label');
+    lab.innerHTML = `<input type="checkbox" checked><span class="sw" style="background:${color}"></span>` +
+                    `${label}<span class="z">${z0.toFixed(2)}–${z1.toFixed(2)} µm</span>`;
+    lab.querySelector('input').onchange = e => { meshes[l].visible = e.target.checked; };
+    box.appendChild(lab);
+  }
+}
+
+const ex = document.getElementById('ex'), explode = document.getElementById('explode');
+function applyView() {
+  const e = +ex.value, sep = +explode.value / 100;
+  document.getElementById('exv').textContent = e;
+  document.getElementById('expv').textContent = explode.value;
+  let i = 0;
+  for (const l of ORDER) {          // explode: lift each layer ~1.2 µm per step
+    const m = meshes[l];
+    if (!m) continue;
+    m.scale.y = e;
+    m.position.y = sep * i * 1.2 * e;
+    i++;
+  }
+  meshes.substrate.scale.y = e;
+  meshes.substrate.position.y = -0.55 * e;
+}
+ex.oninput = applyView;
+explode.oninput = applyView;
+
+document.querySelectorAll('[data-scene]').forEach(b => b.onclick = () => load(b.dataset.scene));
+const rot = document.getElementById('rotate');
+rot.onclick = () => { controls.autoRotate = !controls.autoRotate; rot.classList.toggle('on', controls.autoRotate); };
+document.getElementById('shot').onclick = () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = `systolic-3d-${current}.png`;
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
+};
+document.getElementById('toggle').onclick = () => document.getElementById('panel').classList.toggle('hidden');
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+load('array');
+</script>
+</body>
+</html>
