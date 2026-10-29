@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Systolic Array 3D</title>
+<meta name="description" content="An 8×8 systolic-array accelerator on SkyWater 130 nm, explorable in 3D: every layer from the transistors to the top metal, and every logic cell coloured by what it does.">
+<meta property="og:title" content="8×8 systolic array in 3D (SKY130)">
+<meta property="og:description" content="An 8×8 systolic-array accelerator on SkyWater 130 nm, explorable in 3D: every layer from the transistors to the top metal, and every logic cell coloured by what it does.">
+<meta property="og:type" content="website">
 <style>
 :root {
   --bg: #06080c; --panel: rgba(14, 18, 26, .9); --line: #262d3a; --line2: #3a4456;
@@ -87,7 +91,7 @@ dialog .close { position: sticky; top: 0; float: right; }
 <button id="toggle">Controls</button>
 <div id="panel">
   <h1>8×8 systolic array, in 3D</h1>
-  <p class="sub">Your real SKY130 layout from LibreLane. Every shape is from the GDS.</p>
+  <p class="sub">A real SKY130 layout, taken from RTL to GDS with LibreLane. Every shape is from the GDS.</p>
   <div class="seg" id="scenes">
     <button data-scene="array">Array</button>
     <button data-scene="pe">One PE</button>
@@ -123,7 +127,7 @@ dialog .close { position: sticky; top: 0; float: right; }
 <dialog id="guide">
   <button class="close" id="guide-close">Close</button>
   <h3>What you are looking at</h3>
-  <p>This is the physical layout of your 8×8 weight-stationary systolic array (<code>systolic_array.sv</code> and
+  <p>This is the physical layout of an 8×8 weight-stationary systolic array (<code>systolic_array.sv</code> and
   <code>pe.sv</code>) after LibreLane took it from RTL to GDS on SkyWater's open 130 nm process. Every shape is
   read from the final GDS file, the same file a foundry would use to make masks. Each mask layer is raised to its
   real height in the SKY130 stack (approximate values, in microns). The chip is about 300 times wider than it is
@@ -145,7 +149,7 @@ dialog .close { position: sticky; top: 0; float: right; }
 
   <h3>The controls</h3>
   <ul>
-    <li><b>Hover</b> over anything to see what layer it is, which cell sits under it, what that cell does in your
+    <li><b>Hover</b> over anything to see what layer it is, which cell sits under it, what that cell does in the
       design and which PE it belongs to. <b>Click</b> to pin the card; click again or press Esc to let it go.</li>
     <li><b>Height ×</b> stretches the stack vertically. At 1× everything has its true proportions.</li>
     <li><b>Peel</b> hides every layer above the one you pick, top down. <b>Explode</b> pulls the layers apart
@@ -162,7 +166,7 @@ dialog .close { position: sticky; top: 0; float: right; }
   <h3>Cell functions</h3>
   <p>A standard cell is a pre-designed gate (NAND, flip-flop, adder piece…) that is 2.72 µm tall and a multiple of
   0.46 µm wide. The tools place thousands of them in rows. In <b>Cell functions</b> mode each cell is drawn as a
-  coloured block. The colour shows what that cell does <i>in your design</i>, worked out by tracing the placed
+  coloured block. The colour shows what that cell does <i>in this design</i>, worked out by tracing the placed
   netlist:</p>
   <table id="guide-roles"></table>
   <p>Synthesis doesn't keep "the multiplier" and "the adder" as separate blocks. Yosys turns

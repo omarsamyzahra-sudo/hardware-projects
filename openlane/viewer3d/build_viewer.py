@@ -4,7 +4,9 @@
 
 Gzips and base64-encodes data/pe_tile.json, pe_array.json, cells_pe.json and
 cells_top.json into viewer_template.html (the page unpacks them with
-DecompressionStream) and writes internship/Systolic-Array-3D.html.
+DecompressionStream) and writes internship/Systolic-Array-3D.html, plus the
+same page as internship/systolic-array-3d/index.html, the folder deployed to
+Vercel (`vercel deploy --prod` from there).
 three.js still loads from jsDelivr, so the page needs internet.
 """
 import base64
@@ -13,6 +15,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[2] / "Systolic-Array-3D.html"
+SITE = HERE.parents[2] / "systolic-array-3d" / "index.html"
 DATA = {"tile": "pe_tile", "array": "pe_array", "cpe": "cells_pe", "ctop": "cells_top"}
 
 
@@ -25,5 +28,7 @@ def block(key, name):
 
 blocks = "\n".join(block(k, n) for k, n in DATA.items())
 html = (HERE / "viewer_template.html").read_text(encoding="utf-8").replace("/*DATA*/", blocks)
-OUT.write_text(html, encoding="utf-8", newline="\n")
-print(f"wrote {OUT} ({len(html) / 1e6:.1f} MB)")
+SITE.parent.mkdir(exist_ok=True)
+for path in (OUT, SITE):
+    path.write_text(html, encoding="utf-8", newline="\n")
+    print(f"wrote {path} ({len(html) / 1e6:.1f} MB)")
