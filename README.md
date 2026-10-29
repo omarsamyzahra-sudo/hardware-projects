@@ -111,6 +111,40 @@ one more cycle of latency.
 a uniform texture because placement is flat: the 64 PEs are spread
 together rather than laid out as an 8x8 grid of tiles.
 
+### Tiled (hierarchical) version
+
+`openlane/tiled/` hardens the same RTL hierarchically. First one PE
+becomes a 180 x 180 µm macro (met1-met4 only, pins placed so neighbours
+connect straight across: activations west to east, partial sums north to
+south). Then 64 copies go on a fixed 8x8 grid (220 µm pitch), and the
+top level adds the skew/deskew registers, clock tree and met5 power grid
+around them. The top-level STA uses the macro's own per-corner timing
+views and parasitics.
+
+| | PE macro | tiled array |
+|---|---|---|
+| size | 180 x 180 µm, 1,865 cells | 1.96 x 1.96 mm, 64 macros + 22,832 cells |
+| setup slack, slow corner (20 ns) | +1.96 ns | +3.29 ns (~60 MHz) |
+| setup slack, typical corner | +8.87 ns | +10.20 ns (~102 MHz) |
+| flop-to-flop hold, all corners | passes | passes (worst +0.63 ns) |
+| DRC / LVS / antenna | 0 / 0 / 0 | 0 / 0 / 0 |
+
+It is bigger than the flat run, because the channels and margin are
+mostly empty, but faster at both corners: each PE's wiring is short and
+identical, and the slow-corner failure from the flat run is gone.
+
+Open item: 39 hold violations (worst -0.34 ns) at the slow corners,
+all from top-level input ports (`in_a`, `rst`, `in_tag`, `w_data`,
+`in_valid`; see `openlane/tiled/results/hold_worst_max_ss.rpt`).
+LibreLane's default constraint puts inputs 4 ns after an ideal clock
+edge, while CTS delays the internal clock by about 4.6 ns at that corner
+to match the macros' insertion delay. In a chip, the logic driving these
+pins sits on the same clock tree, so the fix is a real I/O constraint
+(or hold buffers on the input paths), not a change to the array.
+
+`openlane/tiled/results/die.png` shows the 8x8 grid. `bash
+openlane/tiled/run_tiled.sh` reruns both stages (`pe` or `top` for one).
+
 ## Run it
 
 Source `env.sh` in Git Bash first (OSS CAD Suite, RISC-V GCC, Vivado bin).
