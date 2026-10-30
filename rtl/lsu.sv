@@ -116,8 +116,12 @@ module lsu #(
         rest = pending & ~group;
 
         // place each lane's store data in the line, highest lane last
+        // (byte_at and wd get defaults so no path holds an old value: in
+        // simulation that's harmless, in synthesis it's a latch)
         req_wdata = '0;
         req_be    = '0;
+        byte_at   = '0;
+        wd        = '0;
         for (int l = 0; l < LANES; l++)
             if (group[l]) begin
                 byte_at = h_off[l];
