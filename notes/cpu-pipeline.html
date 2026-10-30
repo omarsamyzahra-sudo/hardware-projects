@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>riscv-core, cycle by cycle</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1c1a;--muted:#6b6760;--card:#fff;--line:#e4e0d8;--accent:#2f5d8a;--code:#f2efe8;
+--F:#e8eef6;--D:#e7f3ea;--X:#fbf1dc;--M:#f6e6ef;--W:#ece8f6;--stall:#f6d5c9;--warn:#a2611a;}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161614;--fg:#ebe8e1;--muted:#a29d93;--card:#1f1e1b;--line:#34322d;
+--accent:#7fb0e0;--code:#2a2925;--F:#22303f;--D:#22362a;--X:#3a3220;--M:#3a2531;--W:#2d2a3c;--stall:#5a3226;--warn:#e0a35e;}}
+:root[data-theme=dark]{--bg:#161614;--fg:#ebe8e1;--muted:#a29d93;--card:#1f1e1b;--line:#34322d;--accent:#7fb0e0;--code:#2a2925;
+--F:#22303f;--D:#22362a;--X:#3a3220;--M:#3a2531;--W:#2d2a3c;--stall:#5a3226;--warn:#e0a35e;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 64px}h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:40px 0 8px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:1rem;margin:16px 0 6px}
+.sub{color:var(--muted)}code,pre{background:var(--code);border-radius:5px;font-family:ui-monospace,Consolas,monospace;font-size:.86em}
+code{padding:1px 5px}pre{padding:10px 12px;margin:0;overflow-x:auto}
+.two{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:16px;margin:10px 0}
+@media (max-width:640px){.two{grid-template-columns:1fr}}
+.scroll{overflow-x:auto;margin:10px 0}table.pipe{border-collapse:collapse;font-size:.82rem}
+.pipe th,.pipe td{border:1px solid var(--line);padding:4px 6px;text-align:center;white-space:nowrap}
+.pipe th{color:var(--muted);font-weight:600}.pipe td.ins{text-align:left;font-family:ui-monospace,Consolas,monospace}
+.pc{color:var(--muted);font-family:ui-monospace,Consolas,monospace}
+.st.F{background:var(--F)}.st.D{background:var(--D)}.st.X{background:var(--X)}.st.M{background:var(--M)}.st.W{background:var(--W)}
+.st.stall{background:var(--stall);font-weight:700}tr.flushed td.ins{text-decoration:line-through;color:var(--muted)}
+tr.flushed td.st{opacity:.45}tr.ev td{font-size:.74rem;vertical-align:top;white-space:normal;min-width:54px}
+.e-st,.e-fl{color:var(--warn)}.e-fw{color:var(--accent)}.wave{color:var(--muted);font-size:.85rem}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}
+summary{cursor:pointer;font-weight:600}.legend span{display:inline-block;padding:1px 8px;margin:2px;border-radius:4px;font-size:.85rem}
+</style></head>
+<body><main><p style="margin:0 0 18px"><a href="../" style="color:inherit;opacity:.7;text-decoration:none">← Rayan Benaoussar · portfolio</a></p>
+<h1>The RV32I core, cycle by cycle</h1>
+<p class="sub">Every table below was recorded from the real RTL (riscv-core, Icarus), running in lockstep
+with the Python golden model, so these are the cycles that actually happened, not a textbook drawing.</p>
+<p><b>How to read a pipeline diagram:</b> each row is an instruction, each column a clock cycle, and each
+cell the stage that instruction is in during that cycle. A <span style="background:var(--stall);padding:0 4px">starred</span>
+cell means the instruction was held there (a stall). A struck-out row was fetched on the wrong path and
+flushed: it never wrote anything. The events row says what the control logic did in that cycle.</p>
+<p class="legend"><span style="background:var(--F)">IF fetch</span><span style="background:var(--D)">ID decode + read regs</span>
+<span style="background:var(--X)">EX ALU / branch</span><span style="background:var(--M)">MEM load/store</span><span style="background:var(--W)">WB write reg</span></p>
+<ol><li><a href='#single'>0 · The single-cycle core: one instruction per clock</a></li><li><a href='#flow'>1 · The pipeline with nothing in the way</a></li><li><a href='#forwarding'>2 · Data hazards and forwarding</a></li><li><a href='#load_use'>3 · The load-use hazard: the one stall forwarding can't fix</a></li><li><a href='#branch'>4 · Control hazards: taken branches flush</a></li><li><a href='#jump'>5 · jal and jalr: calls and returns</a></li></ol>
+
+<section id="single">
+  <h2>0 · The single-cycle core: one instruction per clock</h2>
+  <p>Before the pipeline, the simple version: <code>core_single.sv</code> does
+        fetch, decode, execute, memory and write-back all in <b>one</b> clock cycle. Every row below
+        is one clock edge, and exactly one instruction finishes on each one. Watch three things:
+        <b>lw</b> reads memory and writes the value into a register in the same cycle;
+        <b>beq</b> writes no register, it only changes which PC comes next (taken: PC + offset,
+        so the <code>addi x4</code> at 0x14 never appears); and <b>jal / jalr</b> write the return
+        address (PC + 4) into rd and jump.</p>
+  <div class="two"><pre>addi x1, x0, 5
+addi x2, x0, 5
+sw   x1, 0x100(x0)
+lw   x3, 0x100(x0)
+beq  x1, x2, over
+addi x4, x0, 99
+over:
+jal  x5, func
+addi x6, x0, 7
+beq  x0, x0, end
+func:
+addi x7, x0, 1
+jalr x0, 0(x5)
+end:</pre><div><h3>What to notice</h3><ul><li>pc jumps 0x10 → 0x18: the taken beq skipped 0x14.</li><li>jal x5 writes 0x1c (its own PC + 4) into x5. That is the return address.</li><li>jalr x0, 0(x5) jumps back to 0x1c and writes nothing (rd = x0).</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>cycle</th><th>pc</th><th>instruction</th><th>register write</th><th>memory</th></tr><tr><td>1</td><td class='pc'>0x00</td><td class='ins'>addi x1, x0, 5</td><td>x1 ← 5 (0x5)</td><td></td></tr><tr><td>2</td><td class='pc'>0x04</td><td class='ins'>addi x2, x0, 5</td><td>x2 ← 5 (0x5)</td><td></td></tr><tr><td>3</td><td class='pc'>0x08</td><td class='ins'>sw x1, 256(x0)</td><td>—</td><td>store to 0x100</td></tr><tr><td>4</td><td class='pc'>0x0c</td><td class='ins'>lw x3, 256(x0)</td><td>x3 ← 5 (0x5)</td><td>load from 0x100</td></tr><tr><td>5</td><td class='pc'>0x10</td><td class='ins'>beq x1, x2, +8</td><td>—</td><td></td></tr><tr><td>6</td><td class='pc'>0x18</td><td class='ins'>jal x5, +12</td><td>x5 ← 28 (0x1c)</td><td></td></tr><tr><td>7</td><td class='pc'>0x24</td><td class='ins'>addi x7, x0, 1</td><td>x7 ← 1 (0x1)</td><td></td></tr><tr><td>8</td><td class='pc'>0x28</td><td class='ins'>jalr x0, 0(x5)</td><td>—</td><td></td></tr><tr><td>9</td><td class='pc'>0x1c</td><td class='ins'>addi x6, x0, 7</td><td>x6 ← 7 (0x7)</td><td></td></tr><tr><td>10</td><td class='pc'>0x20</td><td class='ins'>beq x0, x0, +12</td><td>—</td><td></td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/single.fst</code></p>
+  <h3>Check yourself</h3><details><summary>Why is the single-cycle core&#x27;s clock slow?</summary><p>The clock period has to fit the longest path through everything in one cycle: instruction memory, then the register file, the ALU, data memory, and back to the register file. Every instruction pays for the slowest one (lw).</p></details><details><summary>beq at 0x10 has offset +8. Where does it go, and why +8, not +2?</summary><p>To 0x10 + 8 = 0x18. Offsets are in bytes, and instructions are 4 bytes, so +8 skips one instruction. (The encoding stores offset/2, because bit 0 is always 0.)</p></details>
+</section>
+<section id="flow">
+  <h2>1 · The pipeline with nothing in the way</h2>
+  <p>Five independent <code>addi</code>s. Each instruction spends one cycle in each
+        stage: IF (fetch), ID (decode + read registers), EX (ALU), MEM (data memory), WB (write the
+        register). Once the pipe is full, <b>one instruction finishes every cycle</b>, even though each
+        one takes 5 cycles start to finish. That's the whole point of pipelining: same latency, ~5×
+        throughput.</p>
+  <div class="two"><pre>addi x1, x0, 1
+addi x2, x0, 2
+addi x3, x0, 3
+addi x4, x0, 4
+addi x5, x0, 5</pre><div><h3>What to notice</h3><ul><li>Read a column top to bottom: in one cycle, five different instructions are in five different stages.</li><li>The diagonal staircase: instruction i enters IF at cycle i.</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>instruction</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr><tr><td class='ins'><span class='pc'>0x00</span> addi x1, x0, 1</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x04</span> addi x2, x0, 2</td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x08</span> addi x3, x0, 3</td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x0c</span> addi x4, x0, 4</td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td></tr><tr><td class='ins'><span class='pc'>0x10</span> addi x5, x0, 5</td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td></tr><tr class='ev'><td>events</td><td></td><td></td><td></td><td>x1←1</td><td>x2←2</td><td>x3←3</td><td>x4←4</td><td>x5←5</td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/flow.fst</code></p>
+  <h3>Check yourself</h3><details><summary>Latency vs throughput: what did pipelining change?</summary><p>Latency (5 cycles per instruction) didn't improve; throughput did (1 instruction per cycle instead of 1 per 5 short cycles). Each stage is short, so the clock can be about 5x faster than the single-cycle one.</p></details><details><summary>What sits between two stages, physically?</summary><p>A pipeline register: a row of flip-flops (d_pc, d_instr, x_rs1_val ...) that captures everything the next stage needs at the clock edge.</p></details>
+</section>
+<section id="forwarding">
+  <h2>2 · Data hazards and forwarding</h2>
+  <p><code>addi x2, x1, 1</code> needs x1 one cycle after <code>addi x1</code>
+        computed it. The value won't be in the register file until WB, which is 2 cycles too late. Instead
+        of waiting, the core <b>forwards</b> it: a mux in front of the ALU takes the value straight from
+        the EX/MEM pipeline register (fwd = 1) or from MEM/WB (fwd = 2). No stall, no lost cycle.</p>
+  <div class="two"><pre>addi x1, x0, 10
+addi x2, x1, 1
+add  x3, x1, x2
+add  x4, x3, x3</pre><div><h3>What to notice</h3><ul><li>fwd_a / fwd_b in the event row say which ALU input got a forwarded value: 1 = from EX/MEM (the previous instruction), 2 = from MEM/WB (two back).</li><li>add x4, x3, x3 forwards x3 into both ALU inputs at once.</li><li>There are no bubbles: the staircase is as clean as the no-hazard case.</li><li>A detail you can find in the waveform: for addi x2, x1, 1 the unit also sets fwd_b = 1, because it compares the rs2 <i>field</i>, and for an I-type instruction those bits are part of the immediate (here 1 = x1). It's harmless, since the ALU's B input takes the immediate instead, and the events row leaves it out.</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>instruction</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr><tr><td class='ins'><span class='pc'>0x00</span> addi x1, x0, 10</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x04</span> addi x2, x1, 1</td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x08</span> add x3, x1, x2</td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td></tr><tr><td class='ins'><span class='pc'>0x0c</span> add x4, x3, x3</td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td></tr><tr class='ev'><td>events</td><td></td><td></td><td><b class='e-fw'>fwd a=1</b></td><td><b class='e-fw'>fwd a=2 b=1</b><br>x1←10</td><td><b class='e-fw'>fwd a=1 b=1</b><br>x2←11</td><td>x3←21</td><td>x4←42</td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/forwarding.fst</code></p>
+  <h3>Check yourself</h3><details><summary>If the forwarding paths were missing, how many cycles would addi x2, x1, 1 wait?</summary><p>Until addi x1 writes back. This core writes the register file in the first half (write-through to ID), so ID could read x1 when addi x1 is in WB: 2 stall cycles.</p></details><details><summary>Both EX/MEM and MEM/WB hold a new value of the same register. Which one wins, and why?</summary><p>EX/MEM, because it's the younger instruction, so its value is the newest. (tb test_forwarding_priority checks exactly this.)</p></details>
+</section>
+<section id="load_use">
+  <h2>3 · The load-use hazard: the one stall forwarding can't fix</h2>
+  <p>A load gets its data at the <b>end</b> of MEM. The instruction right after it
+        wants that data at the <b>start</b> of EX, which is the same moment, so no wire can deliver it in time.
+        The hazard unit sees it in ID (the instruction in EX is a load whose rd matches rs1/rs2),
+        <b>stalls</b> for one cycle (holds PC and IF/ID, sends a bubble into EX), then forwards
+        from MEM/WB.</p>
+  <div class="two"><pre>addi x1, x0, 42
+sw   x1, 0x100(x0)
+lw   x2, 0x100(x0)
+addi x3, x2, 1
+addi x4, x0, 0</pre><div><h3>What to notice</h3><ul><li>The stall cycle: addi x3, x2, 1 stays in ID for two cycles, and a bubble (·) goes into EX behind the lw.</li><li>Right after, fwd_a = 2: the loaded 42 goes from MEM/WB straight into the ALU.</li><li>sw x1 also got x1 forwarded (fwd_b = 1): stores need forwarding too, for the data being stored.</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>instruction</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr><tr><td class='ins'><span class='pc'>0x00</span> addi x1, x0, 42</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x04</span> sw x1, 256(x0)</td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x08</span> lw x2, 256(x0)</td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x0c</span> addi x3, x2, 1</td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st D stall'>ID*</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td></tr><tr><td class='ins'><span class='pc'>0x10</span> addi x4, x0, 0</td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st F stall'>IF*</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td></tr><tr class='ev'><td>events</td><td></td><td></td><td><b class='e-fw'>fwd b=1</b></td><td><b class='e-st'>stall</b><br>x1←42</td><td>bubble in EX</td><td><b class='e-fw'>fwd a=2</b><br>x2←42</td><td></td><td>x3←43</td><td>x4←0</td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/load_use.fst</code></p>
+  <h3>Check yourself</h3><details><summary>Why exactly one bubble and not two?</summary><p>After one cycle the load is in WB and its data is in the MEM/WB register, so the normal MEM/WB forwarding path covers it.</p></details><details><summary>How could a compiler avoid this stall?</summary><p>Schedule an independent instruction between the load and its use (here: move addi x4 up). Same result, no bubble.</p></details>
+</section>
+<section id="branch">
+  <h2>4 · Control hazards: taken branches flush</h2>
+  <p>The core guesses "not taken" and keeps fetching the next instructions. The
+        branch is resolved in <b>EX</b>. If it's taken, the two younger instructions already in IF and ID
+        are on the wrong path: they're <b>flushed</b> (turned into bubbles) and fetch restarts at the
+        target. Cost: 2 cycles per taken branch. A not-taken branch costs nothing.</p>
+  <div class="two"><pre>addi x1, x0, 3
+addi x2, x0, 3
+beq  x1, x2, target
+addi x3, x0, 111
+addi x4, x0, 222
+target:
+addi x5, x0, 5
+bne  x1, x2, target
+addi x6, x0, 6</pre><div><h3>What to notice</h3><ul><li>When beq is in EX, the event row shows the redirect. The wrong-path addi x3 (111) gets through IF and ID, then is struck out and never reaches WB. addi x4 (222) was in IF during that same cycle, so it's dropped before ID and gets no row at all. That's the second lost slot.</li><li>bne x1, x2 is not taken: no flush, no lost cycles.</li><li>x3 and x4 are never written. Check the WB column.</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>instruction</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th></tr><tr><td class='ins'><span class='pc'>0x00</span> addi x1, x0, 3</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x04</span> addi x2, x0, 3</td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x08</span> beq x1, x2, +12</td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td></tr><tr class="flushed"><td class='ins'><span class='pc'>0x0c</span> addi x3, x0, 111</td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x14</span> addi x5, x0, 5</td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x18</span> bne x1, x2, -4</td><td></td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td></tr><tr><td class='ins'><span class='pc'>0x1c</span> addi x6, x0, 6</td><td></td><td></td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td></tr><tr class='ev'><td>events</td><td></td><td></td><td></td><td><b class='e-fl'>redirect + flush</b><br><b class='e-fw'>fwd a=2 b=1</b><br>x1←3</td><td>x2←3</td><td>bubble in EX</td><td></td><td></td><td>x5←5</td><td></td><td>x6←6</td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/branch.fst</code></p>
+  <h3>Check yourself</h3><details><summary>Why is resolving the branch in EX worth 2 cycles, and how would you make it 1?</summary><p>By EX, two younger instructions were already fetched (in IF and ID). Comparing in ID (an equality comparator next to the register file) would cost only 1, at the price of a longer ID stage and new forwarding paths into ID.</p></details><details><summary>Why is flushing safe? Couldn&#x27;t the wrong-path addi have changed something?</summary><p>Nothing in IF or ID changes the architectural state: registers are written in WB and memory in MEM. So turning them into bubbles erases them completely.</p></details>
+</section>
+<section id="jump">
+  <h2>5 · jal and jalr: calls and returns</h2>
+  <p><code>jal x1, func</code> is a call: it writes PC + 4 (the return address) into x1
+        and jumps. <code>jalr x0, 0(x1)</code> is a return: it jumps to x1 + 0 and writes nothing.
+        Both are "always taken", so in this core they redirect from EX and flush 2 instructions,
+        just like a taken branch.</p>
+  <div class="two"><pre>jal  x1, func
+addi x2, x0, 2
+beq  x0, x0, end
+func:
+addi x3, x0, 3
+jalr x0, 0(x1)
+addi x4, x0, 44
+end:</pre><div><h3>What to notice</h3><ul><li>Each jump flushes the two instructions behind it: the one in ID (struck-out row) and the one in IF (dropped, so it has no row). After the return, 0x04 runs again, which is why it appears twice.</li><li>jal writes x1 = 4 (the address of the instruction after it). The return lands there.</li><li>addi x4, x0, 44 after the jalr is fetched but flushed.</li></ul></div></div>
+  <div class="scroll"><table class="pipe"><tr><th>instruction</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr><tr><td class='ins'><span class='pc'>0x00</span> jal x1, +12</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr class="flushed"><td class='ins'><span class='pc'>0x04</span> addi x2, x0, 2</td><td class='st F'>IF</td><td class='st D'>ID</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x0c</span> addi x3, x0, 3</td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x10</span> jalr x0, 0(x1)</td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td><td></td><td></td><td></td></tr><tr class="flushed"><td class='ins'><span class='pc'>0x14</span> addi x4, x0, 44</td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td class='ins'><span class='pc'>0x04</span> addi x2, x0, 2</td><td></td><td></td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td><td></td></tr><tr><td class='ins'><span class='pc'>0x08</span> beq x0, x0, +16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td class='st X'>EX</td><td class='st M'>MEM</td><td class='st W'>WB</td></tr><tr class="flushed"><td class='ins'><span class='pc'>0x0c</span> addi x3, x0, 3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='st F'>IF</td><td class='st D'>ID</td><td></td><td></td></tr><tr class='ev'><td>events</td><td></td><td><b class='e-fl'>redirect + flush</b></td><td></td><td>x1←4<br>bubble in EX</td><td></td><td><b class='e-fl'>redirect + flush</b></td><td>x3←3</td><td>bubble in EX</td><td></td><td><b class='e-fl'>redirect + flush</b></td><td>x2←2</td><td>bubble in EX</td></tr></table></div>
+  <p class="wave">Waveform: <code>cpu-study-pack/waves/jump.fst</code></p>
+  <h3>Check yourself</h3><details><summary>Why does jalr need the ALU but jal doesn&#x27;t?</summary><p>jal's target is PC + immediate, known from the instruction alone. jalr's target is rs1 + immediate (a register value), so it needs the register, possibly forwarded, and an adder.</p></details><details><summary>jalr clears bit 0 of the target. Why?</summary><p>The ISA says so (target = (rs1 + imm) & ~1), so the low bit can be used freely, e.g. for tagging. Instructions are 4-byte aligned anyway.</p></details>
+</section>
+<h2>Going further: the waveforms</h2>
+<p>Each scenario also saved a full waveform (every signal, every cycle) in <code>cpu-study-pack/waves/</code>. Open one in
+<a href="https://surfer-project.org/">Surfer</a> or GTKWave and add <code>u_core.pc_f</code>, <code>d_instr</code>, <code>x_instr</code>,
+<code>stall</code>, <code>redirect_x</code>, <code>fwd_a</code>, <code>fwd_b</code>, <code>w_rd</code>, <code>w_wdata</code>.
+Then find the same events as in the tables above. Being able to do that is the Day 2 gate skill: "show me the load-use stall in the waveform."</p>
+<p class="sub">Regenerate: <code>cd riscv-core &amp;&amp; source env.sh &amp;&amp; python ../cpu-study-pack/study.py &amp;&amp; python ../cpu-study-pack/make_html.py</code></p>
+</main></body></html>
