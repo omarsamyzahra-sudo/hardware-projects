@@ -274,15 +274,41 @@ head into a 272 MB scratch buffer) before every use, so peak ≈ stock and
 it's ~19× slower. A decoder fused into the matmul (the RTL, or
 `gpu/ewgemv.cu`'s kernel) has no scratch buffer. Not the chip.
 
-## Open — home PC
+## Open (to do)
 
-1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
-   and measured on the 3060 Laptop.
-2. ~~Real-weight layer through the RTL~~ done (layer 21, both modes).
-3. ~~10,000 seeds~~ done. cocotb under Verilator; coverage report.
-4. ~~RTX 3080 rerun~~ dropped (2026-10-31, Rayan): the 3060 Laptop numbers
-   are the GPU baseline. Optional: Nsight Compute on `gemv_ew` (installed on
-   the laptop) to see what it's bound by.
-5. Vivado synth/impl/power + Fmax (needs a license tier that covers
-   2026.1.1, or an older free-tier release); datasheet numbers for ARCH §2.1.
-   Yosys estimates are in `fpga/yosys/`.
+Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight
+layer through the RTL (layer 21, both modes), 10,000 seeds, whole-model GPU
+demo. Dropped: RTX 3080 rerun (2026-10-31, Rayan; the 3060 Laptop is the GPU
+baseline).
+
+Running / queued:
+1. Bandwidth-limited real-layer run (`tb/test_real.py::test_real_bw8`,
+   layer 21 at 8 B/cycle): decoded vs. raw speedup on real weights [sim].
+2. SKY130 layouts (`openlane/run.sh decoder|engine`): Fmax per corner, area,
+   power, DRC/LVS for the decoder alone and the whole engine [estimate].
+
+To do:
+3. Power from real switching activity: dump a VCD/SAIF from the real-layer
+   run and feed it to the layout's STA power report (brief Phase 6.1), in
+   place of default toggle rates.
+4. Gate-level simulation of the routed decoder netlist with SDF delays:
+   the layout runs bit-exact at the reported clock.
+5. Energy per token: DRAM energy = bytes × pJ/bit (cited value) + logic
+   power; fill the `docs/RESULTS.md` table, with ZipServ's published GPU
+   numbers alongside as a labeled external reference.
+6. Fused kernel in the whole-model GPU demo: `gemv_ew` vs. our raw `gemv_bf16`
+   for batch-1 generation, tokens/s on the 3060, tokens checked identical.
+7. Nsight Compute on `gemv_ew` (3060 Laptop): what bounds it.
+8. cocotb under Verilator; functional coverage report.
+9. Phase 7 sweeps (brief): code width 2/3/4, per-matrix vs. per-tile bases
+   (64/256/1024), lane count L, exponent-byte vs. full-BF16 escapes; each
+   point: bits/weight, cycles at a fixed bandwidth, area/Fmax/power. Plus the
+   stacking-hook design note.
+10. If the engine or GPU layouts are congestion-bound: SKY130 SRAM macros
+    (OpenRAM) for the stream FIFOs / x buffer / register file.
+11. Vivado synth/impl/power + Fmax (needs a license tier that covers
+    2026.1.1, or an older free-tier release). Yosys estimates are in
+    `fpga/yosys/`.
+
+Later (FPGA access, not soon): on-board GEMV throughput, achieved DRAM
+bandwidth and board power; the ARCH §2.1 bandwidth table from datasheets.
