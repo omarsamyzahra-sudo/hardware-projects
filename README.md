@@ -5,7 +5,7 @@ RTL design, verification, SkyWater 130 nm layout and GPU kernels. Each folder is
 a self-contained project with its own README, tests and results, and keeps the
 full commit history it was built with.
 
-**Portfolio site:** https://withered24.github.io/hardware-projects/ (source in [`docs/`](docs))
+**Portfolio site:** https://rayan-benaoussar.vercel.app (also at https://withered24.github.io/hardware-projects/; source in [`docs/`](docs))
 
 | project | what it is | headline | evidence |
 |---|---|---|---|
