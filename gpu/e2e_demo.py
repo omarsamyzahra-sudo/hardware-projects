@@ -154,6 +154,79 @@ class EWEmbedding(nn.Module):
         return self.store.decode_rows(u)[inv].reshape(*ids.shape, self.store.cols)
 
 
+# ------------------------------------------------- fused kernels (ewlib.dll)
+# Modes kbf16 / kew: every Linear (and the LM head) runs our own batch-1 GEMV
+# kernels from gpu/ewgemv_kernels.cuh, raw BF16 or with the exponent-window
+# decode fused in. Both accumulate in the same order, so kbf16 and kew must
+# give bit-identical logits; against stock (cuBLAS) only the tokens are
+# compared, since cuBLAS sums in a different order. No scratch buffers: the
+# kew weights never exist decoded in memory.
+_LIB = None
+
+
+def lib():
+    global _LIB
+    if _LIB is None:
+        import ctypes
+        p = REPO / "gpu" / "build" / "ewlib.dll"
+        assert p.exists(), "build it first: gpu\\build_lib.bat"
+        _LIB = ctypes.CDLL(str(p))
+        v, i, u = ctypes.c_void_p, ctypes.c_int, ctypes.c_uint32
+        _LIB.gemv_bf16_g16.argtypes = [v, v, v, i, i]
+        _LIB.gemv_ew_g16.argtypes = [v, v, v, v, v, v, i, i, u]
+    return _LIB
+
+
+class KLinear(nn.Module):
+    def __init__(self, bias, src: nn.Module | None = None, store: EWStore | None = None):
+        super().__init__()
+        self.bias, self.store = bias, store
+        self.src = src            # module owning the raw weight (the embedding, for the tied head)
+
+    def forward(self, x):
+        k = x.shape[-1]
+        x2 = x.reshape(-1, k).contiguous()
+        w = self.src.weight if self.store is None else None
+        rows = self.store.rows if self.store is not None else w.shape[0]
+        y = torch.empty(x2.shape[0], rows, dtype=torch.float32, device=x.device)
+        L = lib()
+        for m in range(x2.shape[0]):
+            if self.store is None:
+                err = L.gemv_bf16_g16(w.data_ptr(), x2[m].data_ptr(), y[m].data_ptr(), rows, k)
+            else:
+                s = self.store
+                err = L.gemv_ew_g16(s.planes.data_ptr(), s.sm.data_ptr(), s.esc.data_ptr(), s.row_esc.data_ptr(),
+                                    x2[m].data_ptr(), y[m].data_ptr(), rows, k, s.base)
+            assert err == 0, f"kernel launch error {err}"
+        out = y.to(torch.bfloat16)
+        if self.bias is not None:
+            out = out + self.bias
+        return out.reshape(*x.shape[:-1], rows)
+
+
+def kernelize(model, mode):
+    """Swap every Linear for KLinear (kbf16: raw weights; kew: compressed,
+    embedding too). Returns the stores (kew) for the byte count."""
+    stores = {}
+    tied = model.lm_head.weight is model.model.embed_tokens.weight
+    if mode == "kew":
+        for name, mod in matrices(model):
+            stores[name] = EWStore(encode_matrix(mod.weight.detach()))
+    for name, mod in list(model.named_modules()):
+        for child_name, child in list(mod.named_children()):
+            full = f"{name}.{child_name}" if name else child_name
+            if isinstance(child, nn.Embedding) and mode == "kew":
+                setattr(mod, child_name, EWEmbedding(stores[full]))
+            elif isinstance(child, nn.Linear):
+                key = "model.embed_tokens" if (tied and full == "lm_head") else full
+                if mode == "kew":
+                    setattr(mod, child_name, KLinear(child.bias, store=stores[key]))
+                else:
+                    src = model.model.embed_tokens if (tied and full == "lm_head") else child
+                    setattr(mod, child_name, KLinear(child.bias, src=src))
+    return stores
+
+
 # ------------------------------------------------------------------ helpers
 def load_model():
     from transformers import AutoModelForCausalLM
@@ -204,6 +277,8 @@ def run(mode, lm_rows):
         t0 = time.time()
         stores, originals = compress(model, lm_rows)
         print(f"encoded in {time.time() - t0:.0f} s", flush=True)
+    elif mode in ("kbf16", "kew"):
+        stores = kernelize(model, mode)
     torch.cuda.reset_peak_memory_stats()
     model = model.cuda()
     torch.cuda.synchronize()
@@ -217,6 +292,8 @@ def run(mode, lm_rows):
                                               originals[name].view(torch.int16)))
         del originals
         torch.cuda.empty_cache()
+    elif mode == "kew":
+        weight_bytes = sum(s.nbytes() for s in stores.values())
     torch.cuda.reset_peak_memory_stats()
 
     results = []
@@ -238,7 +315,7 @@ def run(mode, lm_rows):
         print(f"  {p!r} -> {tok.decode(new)[:70]!r}", flush=True)
 
     out = {"mode": mode, "gpu": torch.cuda.get_device_name(0), "torch": torch.__version__,
-           "weight_matrices": len(matrices(model)) if mode == "stock" else len(stores),
+           "weight_matrices": len(stores) if mode in ("ew", "kew") else 169,
            "weight_bytes_bf16": bf16_bytes, "weight_bytes_stored": weight_bytes,
            "resident_after_load": resident, "peak_during_generation": torch.cuda.max_memory_allocated(),
            "tokens_per_s": len(PROMPTS) * NEW_TOKENS / t_gen, "lm_rows": lm_rows if mode == "ew" else None,
@@ -281,9 +358,38 @@ def compare():
     print(txt)
 
 
+def compare_kernels():
+    s = json.loads((OUT / "e2e_stock.json").read_text())
+    kb = json.loads((OUT / "e2e_kbf16.json").read_text())
+    ke = json.loads((OUT / "e2e_kew.json").read_text())
+    mb = lambda b: f"{b / 2**20:8.1f} MiB"
+    lines = [f"Qwen2.5-0.5B, our fused batch-1 GEMV kernels (G=16) for every linear layer, "
+             f"{kb['gpu']} [measured]", ""]
+    lines.append(f"{'':30s}{'stock (cuBLAS)':>16s}{'ours, raw BF16':>16s}{'ours, ew fused':>16s}")
+    for label, key in (("weight matrices in VRAM", "weight_bytes_stored"),
+                       ("all GPU memory after load", "resident_after_load"),
+                       ("peak GPU memory, generating", "peak_during_generation")):
+        lines.append(f"{label:30s}{mb(s[key]):>16s}{mb(kb[key]):>16s}{mb(ke[key]):>16s}")
+    lines.append(f"{'tokens/s':30s}{s['tokens_per_s']:16.1f}{kb['tokens_per_s']:16.1f}{ke['tokens_per_s']:16.1f}")
+    lines.append(f"{'ew fused vs ours raw':30s}{'':16s}{'':16s}{ke['tokens_per_s'] / kb['tokens_per_s']:15.3f}x")
+    lines.append("")
+    for a, b, c in zip(s["results"], kb["results"], ke["results"]):
+        lines.append(f"{a['prompt']!r}: ew vs raw (same kernels): tokens identical {b['tokens'] == c['tokens']}, "
+                     f"logits bit-identical {b['logits_sha256'] == c['logits_sha256']}; "
+                     f"ours vs stock tokens identical {a['tokens'] == b['tokens']}")
+    txt = "\n".join(lines) + "\n"
+    (OUT / "e2e_kernels_rtx3060-laptop.txt").write_text(txt)
+    print(txt)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["stock", "ew", "compare"])
+    ap.add_argument("mode", choices=["stock", "ew", "kbf16", "kew", "compare", "compare_kernels"])
     ap.add_argument("--lm-rows", type=int, default=0, help="0 = decode the LM head whole")
     a = ap.parse_args()
-    compare() if a.mode == "compare" else run(a.mode, a.lm_rows or None)
+    if a.mode == "compare":
+        compare()
+    elif a.mode == "compare_kernels":
+        compare_kernels()
+    else:
+        run(a.mode, a.lm_rows or None)

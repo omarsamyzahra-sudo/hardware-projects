@@ -274,6 +274,83 @@ head into a 272 MB scratch buffer) before every use, so peak ≈ stock and
 it's ~19× slower. A decoder fused into the matmul (the RTL, or
 `gpu/ewgemv.cu`'s kernel) has no scratch buffer. Not the chip.
 
+## 2026-10-31 — decoder alone on SKY130 **[estimate: layout tools, sky130_fd_sc_hd]**
+
+`openlane/run.sh decoder` (LibreLane, weight_decoder only, L = 8, 3-bit,
+per-matrix base; 20 ns target, 40% utilization), 6 minutes. Results in
+`openlane/decoder/results/`.
+
+| | value |
+|---|---|
+| standard cells | 6,338 (53,036 µm² of cell area; die 329 × 340 µm) |
+| setup slack @ 20 ns: tt / ss / ff | +7.50 / −0.54 / +9.50 ns → **~80 MHz typical**, ~49 MHz slow corner (ss, 100 °C, 1.60 V), ~95 MHz fast |
+| DRC (Magic, KLayout) · LVS · antenna | 0 · 0 · 0 |
+| power, default activity (flow metric) | 3.20 mW @ 50 MHz |
+
+## 2026-10-31 — routed decoder netlist, gate-level, real weights **[sim]**
+
+`tb/test_dec.py`: the routed netlist (`gl/weight_decoder.nl.v`) over the
+SKY130 cell models (functional, unit delay), fed the first 128 rows of layer
+21's q_proj (114,688 weights, 5,651 escapes): **14,336/14,336 chunks
+bit-exact at 0.9997 chunks/cycle**, and again with 20% random gaps on every
+input and the output. Same test passes on the RTL. Timing at the clock is
+from STA above, not from this simulation.
+
+## 2026-10-31 — decoder power from real switching **[estimate]**
+
+`gl/power.tcl` (OpenSTA 2.7, tt 25 °C 1.80 V library, nominal SPEF, the
+layout's 20 ns SDC) with the VCD of the full-speed gate-level run above
+(16,314 pins annotated). `gl/power_report.txt`.
+
+| activity | sequential | combinational | clock | **total @ 50 MHz** |
+|---|---|---|---|---|
+| default (OpenSTA) | 1.15 mW | 0.72 mW | 0.84 mW | 2.71 mW |
+| **real weights** | 1.12 mW | 1.56 mW | 0.84 mW | **3.53 mW** |
+
+3.53 mW / (50 MHz × 8 weights × 0.9997) = **8.83 pJ per decoded weight**
+(130 nm, 1.8 V).
+
+## 2026-10-31 — weight-streaming energy per token **[estimate + cited]**
+
+`analysis/energy.py` → `analysis/energy.txt`. Per token at batch 1 every
+weight is read once (493,961,216 weights). DRAM energy cited from O'Connor
+et al., "Fine-Grained DRAM", MICRO-50 2017: HBM2 3.97 pJ/bit (§1), GDDR5
+14.0 pJ/bit (Fig. 1a). Counted: weight DRAM reads + decoder logic only
+(everything else is identical in both modes).
+
+| memory | raw BF16 | exponent window | saving |
+|---|---|---|---|
+| HBM2 | 63.52 pJ/w, 31.38 mJ/token | 53.39 pJ/w, 26.37 mJ/token | **15.9%** |
+| GDDR5 | 224.00 pJ/w, 110.65 mJ/token | 165.98 pJ/w, 81.99 mJ/token | **25.9%** |
+
+Break-even DRAM cost: 1.85 pJ/bit. The decoder figure is 130 nm; a modern
+node spends far less per weight, so these savings are conservative.
+
+## 2026-10-31 — fused kernels in the whole model **[measured]**
+
+`gpu/e2e_demo.py kbf16|kew|compare_kernels` with `gpu/build/ewlib.dll`
+(the G = 16 kernels from `gpu/ewgemv_kernels.cuh`, now shared with
+`ewgemv.cu`) running every linear layer and the LM head, batch-1 decode.
+`gpu/results/e2e_kernels_rtx3060-laptop.txt`.
+
+| | stock (cuBLAS) | ours, raw BF16 | ours, ew fused |
+|---|---|---|---|
+| weight matrices in VRAM | 942.2 MiB | 942.2 MiB | **662.7 MiB** |
+| peak GPU memory, generating | 1077.7 MiB | 1076.7 MiB | **791.9 MiB** |
+| tokens/s | 13.2 | 12.8 | 12.5 (**0.977×** ours raw) |
+
+- ew fused vs. ours raw: **tokens identical and logits bit-identical** on all
+  3 prompts (same accumulation order). Ours vs. stock: tokens identical.
+- With the decode fused, no decoded copy of any matrix ever exists: peak
+  memory drops 1.36× against stock. tokens/s is mostly Python/launch
+  overhead at this model size (eager attention, one launch per row in
+  prefill), so it says little about the kernels; the layer benchmark does.
+- Layer benchmark rerun today after the refactor (`ewgemv.exe`, layout runs
+  in the background): best ew 0.971× best bf16 (was 0.983× on 10-30); still
+  bit-identical. Same conclusion: a GPU decoding in software breaks even.
+- Nsight Compute: blocked by Windows (ERR_NVGPUCTRPERM, GPU performance
+  counters are admin-only until enabled in the NVIDIA Control Panel).
+
 ## Open (to do)
 
 Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight

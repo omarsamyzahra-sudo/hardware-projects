@@ -1,0 +1,12 @@
+Qwen2.5-0.5B, our fused batch-1 GEMV kernels (G=16) for every linear layer, NVIDIA GeForce RTX 3060 Laptop GPU [measured]
+
+                                stock (cuBLAS)  ours, raw BF16  ours, ew fused
+weight matrices in VRAM              942.2 MiB       942.2 MiB       662.7 MiB
+all GPU memory after load            950.2 MiB       950.2 MiB       665.3 MiB
+peak GPU memory, generating         1077.7 MiB      1076.7 MiB       791.9 MiB
+tokens/s                                  13.2            12.8            12.5
+ew fused vs ours raw                                                    0.977x
+
+'The capital of France is': ew vs raw (same kernels): tokens identical True, logits bit-identical True; ours vs stock tokens identical True
+'def fibonacci(n):': ew vs raw (same kernels): tokens identical True, logits bit-identical True; ours vs stock tokens identical True
+'In a lossless compression scheme, the decoder must': ew vs raw (same kernels): tokens identical True, logits bit-identical True; ours vs stock tokens identical True
