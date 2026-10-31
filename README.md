@@ -22,6 +22,10 @@ with cocotb against a Python golden model and the official riscv-tests suite.
 - ✅ **Mutation-tested**: 33/33 planted pipeline bugs caught (no single layer catches all
   of them; see the table in [docs/verification.md](docs/verification.md))
 - ✅ One-command regression: `./regress.sh` (about 90 s)
+- ✅ **SKY130 layout** (LibreLane/OpenROAD, `openlane/`): ~71 MHz at the typical corner
+  (~44 MHz slow, ~93 MHz fast; 20 ns target), 18,188 cells (0.156 mm²), 9.7 mW at
+  50 MHz with default switching activity, DRC/LVS/antenna clean. Open: max-slew
+  warnings at the slow corner (3,109; 11 at typical) from the default flow settings
 - ⬜ FPGA bring-up on the Arty A7 (Milestone 5)
 
 Methodology and numbers: [docs/verification.md](docs/verification.md). Bugs found
@@ -51,6 +55,7 @@ that it takes the correct misaligned-load trap.
 - `formal/`: SymbiYosys proof of the pipeline's SVA properties (`core.sby`)
 - `tests/`: official riscv-tests (git submodule) and `build_rvtests.py`
 - `fpga/`: Arty A7 top level and constraints
+- `openlane/`: SKY130 layout config (`run.sh`), results and KLayout renders (`render.sh`, `make_die.py`)
 - `docs/`: worklog, bug catalog, verification write-up
 
 ## Running the tests
