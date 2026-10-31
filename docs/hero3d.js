@@ -9,11 +9,8 @@
 // tile's three code words fill the staging registers.
 // Data: assets/hero_decoder.json + .bin (ew-decoder/openlane/build_hero.py) and assets/hero_decoder_base.jpg
 // (ew-decoder/openlane/hero_base.py).
-import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import * as THREE from "./vendor/three-hero.js";   // three.js 0.160, the parts used here, bundled (vendor/three-hero.src.js)
+import { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } from "./vendor/three-hero.js";
 
 const UM = 1 / 190;                  // scene units per micron: the 0.37 mm die is ~2 units wide
 const Z = 3;                         // heights exaggerated 3x so the layers read at this scale

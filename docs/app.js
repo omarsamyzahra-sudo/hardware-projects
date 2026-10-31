@@ -18,6 +18,11 @@ const file = (path) => `${REPO}/blob/main/${path}`;
 const Tag = ({ k }) => html`<i class=${"tag " + k.split(" ")[0]}>${k}</i>`;
 
 const ENGINE = new URLSearchParams(location.search).get("hero") !== "decoder";   // ?hero=decoder: the decoder-only hero
+// the hero's code and data start loading now, alongside React, not after the page has mounted
+const HERO = ENGINE ? "engine" : "decoder";
+const heroLoad = Promise.all([import(ENGINE ? "./hero_engine.js" : "./hero3d.js"),
+  fetch(`assets/hero_${HERO}.json`).then((r) => r.json()), fetch(`assets/hero_${HERO}.bin`).then((r) => r.arrayBuffer())]);
+heroLoad.catch(() => {});
 
 function Hero() {
   const canvas = useRef(null);
@@ -28,9 +33,7 @@ function Hero() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     (async () => {
       try {
-        const name = ENGINE ? "engine" : "decoder";
-        const [mod, head, buf] = await Promise.all([import(ENGINE ? "./hero_engine.js" : "./hero3d.js"),
-          fetch(`assets/hero_${name}.json`).then((r) => r.json()), fetch(`assets/hero_${name}.bin`).then((r) => r.arrayBuffer())]);
+        const [mod, head, buf] = await heroLoad;
         if (dead) return;
         const mount = ENGINE ? mod.mountEngine : mod.mountDecoder;
         stop = mount(canvas.current, { head, buf, baseUrl: "assets/hero_decoder_base.jpg", reducedMotion, onReady: () => setReady(true) });

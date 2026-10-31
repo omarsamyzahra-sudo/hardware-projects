@@ -7,11 +7,8 @@
 // decoder and x buffer -> multipliers -> adder tree -> accumulator -> output), and arcs between the blocks'
 // centres carry it from one to the next. In the real pipeline every block is busy every cycle; the wave and
 // the arcs are for the eye. Data: assets/hero_engine.json + .bin (ew-decoder/openlane/build_hero_engine.py).
-import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import * as THREE from "./vendor/three-hero.js";   // three.js 0.160, the parts used here, bundled (vendor/three-hero.src.js)
+import { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } from "./vendor/three-hero.js";
 
 const UM = 2 / 2780;                 // scene units per micron: the 2.8 mm die is ~2 units wide
 const PERIOD = 6;                    // seconds per trip through the engine
@@ -238,7 +235,7 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
     if (first) { first = false; onReady && onReady(); }
     if (visible && !reducedMotion) raf = requestAnimationFrame(frame);
   }
-  raf = requestAnimationFrame(frame);
+  frame(performance.now());          // first frame now, not a frame later
 
   return () => {
     cancelAnimationFrame(raf); ro.disconnect(); iob.disconnect();
