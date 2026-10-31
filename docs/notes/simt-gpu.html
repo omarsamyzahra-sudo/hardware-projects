@@ -1,0 +1,297 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>simt-gpu, explained</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1c1a;--muted:#6b6760;--card:#fff;--line:#e4e0d8;--accent:#2f5d8a;--code:#f2efe8;
+--on:#cfe5d4;--off:#f1ede6;--wait:#f6d5c9;--shared:#e8eef6;--per:#fbf1dc;--warn:#a2611a;--good:#2e7d4f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161614;--fg:#ebe8e1;--muted:#a29d93;--card:#1f1e1b;--line:#34322d;
+--accent:#7fb0e0;--code:#2a2925;--on:#24402d;--off:#24231f;--wait:#5a3226;--shared:#22303f;--per:#3a3220;--warn:#e0a35e;--good:#7cc79a;}}
+:root[data-theme=dark]{--bg:#161614;--fg:#ebe8e1;--muted:#a29d93;--card:#1f1e1b;--line:#34322d;--accent:#7fb0e0;--code:#2a2925;
+--on:#24402d;--off:#24231f;--wait:#5a3226;--shared:#22303f;--per:#3a3220;--warn:#e0a35e;--good:#7cc79a;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 64px}h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:40px 0 8px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:1rem;margin:16px 0 6px}
+.sub{color:var(--muted)}code,pre{background:var(--code);border-radius:5px;font-family:ui-monospace,Consolas,monospace;font-size:.86em}
+code{padding:1px 5px}pre{padding:10px 12px;margin:0;overflow-x:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px 0}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+.scroll{overflow-x:auto;margin:10px 0}table{border-collapse:collapse;font-size:.88rem}
+th,td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.mask td{text-align:center;font-family:ui-monospace,Consolas,monospace;font-size:.82rem;min-width:30px}
+table.mask td.ins{text-align:left;white-space:nowrap}
+.on{background:var(--on)}.off{background:var(--off);color:var(--muted)}.wt{background:var(--wait)}
+.box{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--card)}
+.blk{display:inline-block;border-radius:5px;padding:2px 7px;margin:2px;font-size:.82rem;border:1px solid var(--line)}
+.sh{background:var(--shared)}.pt{background:var(--per)}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}
+summary{cursor:pointer;font-weight:600}.note{border-left:3px solid var(--accent);padding:4px 12px;margin:12px 0;background:var(--card)}
+.warn{border-left-color:var(--warn)}.big{font-size:1.5rem;font-weight:700}
+</style></head>
+<body><main><p style="margin:0 0 18px"><a href="../" style="color:inherit;opacity:.7;text-decoration:none">← Rayan Benaoussar · portfolio</a></p>
+<h1>The SIMT GPU, explained</h1>
+<p class="sub">The last build of the sprint. Every number on this page was measured on the RTL in
+<code>internship/simt-gpu</code> (Icarus + cocotb), with the results checked against riscv-core's golden model.</p>
+
+<ol>
+<li><a href="#notcpus">A GPU is not a bunch of CPUs</a></li>
+<li><a href="#hier">Grid, block, warp, thread</a></li>
+<li><a href="#pipe">The pipeline, and why it has no forwarding</a></li>
+<li><a href="#latency">Hiding latency with other warps</a></li>
+<li><a href="#div">Divergence: when threads in a warp disagree</a></li>
+<li><a href="#coal">Coalescing: why access patterns matter</a></li>
+<li><a href="#bench">CPU vs GPU, measured</a></li>
+<li><a href="#verif">How we know it's right</a></li>
+<li><a href="#real">What an NVIDIA SM adds</a></li>
+<li><a href="#gate">Gate quiz</a></li>
+</ol>
+
+<section id="notcpus">
+<h2>1 · A GPU is not a bunch of CPUs</h2>
+<p>It's a natural first guess: "a GPU is lots of little CPUs". If it were, each thread would have its own
+fetch unit, decoder, branch predictor and control logic, and 64 threads would cost 64 front ends. That
+front end is most of what a CPU is. A GPU core makes the opposite bet. It keeps <b>one</b> front end and
+spends the area on <b>many datapaths</b>, which all execute the same instruction on different data.
+This is called <b>SIMT</b>: single instruction, multiple threads.</p>
+
+<div class="two">
+<div class="box"><h3>4 CPUs (what we did <i>not</i> build)</h3>
+<p>Each one has its own copy of everything:</p>
+<p><span class="blk pt">fetch</span><span class="blk pt">decode</span><span class="blk pt">hazard unit</span><span class="blk pt">forwarding</span><span class="blk pt">regs</span><span class="blk pt">ALU</span> × 4</p>
+<p class="sub">4 instructions per cycle, from 4 independent programs. Most of the area is control.</p></div>
+<div class="box"><h3>1 SIMT core (simt_core.sv)</h3>
+<p><span class="blk sh">scheduler</span><span class="blk sh">fetch</span><span class="blk sh">decode</span><span class="blk sh">branch logic</span> × 1, shared</p>
+<p><span class="blk pt">regs</span><span class="blk pt">ALU</span><span class="blk pt">PC</span> × 32 threads (8 ALUs, one per lane)</p>
+<p class="sub">1 instruction per cycle, done for 8 threads at once. Most of the area is ALUs and registers.</p></div>
+</div>
+
+<div class="scroll"><table>
+<tr><th>In our RTL</th><th>How many</th><th>Where</th></tr>
+<tr><td>Warp scheduler, instruction fetch, decoder (riscv-core's <code>decoder</code> + <code>immgen</code>)</td><td>1 per core</td><td><code>simt_core.sv</code> F and D stages</td></tr>
+<tr><td>ALU + branch comparator (riscv-core's <code>alu</code>, <code>branch_unit</code>)</td><td>8 per core (one per lane)</td><td><code>simt_core.sv</code> X stage, a <code>for</code> over lanes</td></tr>
+<tr><td>Registers (x1–x31)</td><td>one full set per thread: 32 threads × 31</td><td><code>rf</code>, indexed (lane, warp, reg)</td></tr>
+<tr><td>Program counter</td><td>one per thread</td><td><code>pc[warp*8 + lane]</code></td></tr>
+<tr><td>Load/store unit with coalescer</td><td>1 per core</td><td><code>lsu.sv</code></td></tr>
+</table></div>
+<p>The riscv-core blocks went in <b>unchanged</b>. The decoder and ALU don't care whether one thread or
+eight are behind them. What's new is everything around them: the scheduler, the masks, the per-thread
+state, and the memory path.</p>
+<div class="note">The catch, and the rest of this page: sharing one instruction stream only pays when the 8 threads
+<i>want</i> the same instruction (section 5) and their memory accesses sit next to each other (section 6).
+GPUs are fast on code like that and slow on code that isn't.</div>
+</section>
+
+<section id="hier">
+<h2>2 · Grid, block, warp, thread</h2>
+<p>A <b>kernel</b> is one program that every thread runs. You launch it over a <b>grid</b> of
+<b>blocks</b>. Each block has up to 32 threads and runs on one core. The core splits the block into
+<b>warps</b> of 8. The warp is what the hardware schedules: 8 threads, 1 instruction at a time.</p>
+<div class="scroll"><table>
+<tr><th>Level</th><th>Our GPU</th><th>CUDA name</th><th>Thread reads it with</th></tr>
+<tr><td>Thread index in its block</td><td>0–31</td><td><code>threadIdx.x</code></td><td><code>csrr t1, tid</code> (CSR 0xCC0)</td></tr>
+<tr><td>Block index</td><td>0 … grid−1</td><td><code>blockIdx.x</code></td><td><code>csrr t0, ctaid</code> (0xCC1)</td></tr>
+<tr><td>Threads per block</td><td>1–32</td><td><code>blockDim.x</code></td><td><code>csrr t1, ntid</code> (0xCC2)</td></tr>
+<tr><td>Blocks in the grid</td><td>any</td><td><code>gridDim.x</code></td><td><code>csrr t1, nctaid</code> (0xCC3)</td></tr>
+<tr><td>Kernel arguments</td><td>pointer into memory</td><td>(parameter buffer)</td><td><code>csrr a0, args</code> (0xCC4)</td></tr>
+</table></div>
+<p>Thread <code>tid</code> lives in warp <code>tid / 8</code>, lane <code>tid % 8</code>. Every kernel starts by working out
+its global index, exactly like CUDA's <code>i = blockIdx.x * blockDim.x + threadIdx.x</code>:</p>
+<div class="two"><pre>csrr  t0, ctaid
+csrr  t1, ntid
+mul   t0, t0, t1
+csrr  t1, tid
+add   t0, t0, t1        # t0 = global index i
+csrr  a0, args</pre>
+<pre>// the same vecadd in CUDA C
+__global__ void vecadd(int *a, int *b,
+                       int *c, int n) {
+  int i = blockIdx.x * blockDim.x
+        + threadIdx.x;
+  if (i &lt; n) c[i] = a[i] + b[i];
+}</pre></div>
+<p>The dispatcher in <code>gpu_top.sv</code> hands out blocks: whenever a core goes idle, it gets the next block
+number. With 32 blocks and 2 cores, each core runs about 16 blocks one after another. Threads exit with
+<code>ecall</code>, and when every thread of a block has exited, the core asks for another.</p>
+</section>
+
+<section id="pipe">
+<h2>3 · The pipeline, and why it has no forwarding</h2>
+<p>Three stages: <b>F</b> picks a warp (round robin among warps that are ready), works out its PC and active
+mask, and reads instruction memory. <b>D</b> decodes and reads the 8 lanes' registers. <b>X</b> runs 8 ALUs,
+writes back, and moves each active thread's PC on.</p>
+<p>Remember riscv-core: forwarding paths, a load-use stall, and flushes on taken branches, all because
+<i>one</i> program had several of its instructions in the pipeline at once. Here, <b>a warp never has more than
+one instruction in flight</b>. A warp is marked <code>busy</code> when it's picked and freed when its
+instruction finishes. So an instruction can never need the result of an earlier one that isn't done yet: no
+data hazards, no forwarding, no branch prediction, no flushes. The pipeline is still full, because the
+next instruction in it comes from a <i>different warp</i>.</p>
+<div class="scroll"><table class="mask">
+<tr><th>cycle</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr>
+<tr><th>F</th><td>w0</td><td>w1</td><td>w2</td><td>w3</td><td>w0</td><td>w1</td></tr>
+<tr><th>D</th><td></td><td>w0</td><td>w1</td><td>w2</td><td>w3</td><td>w0</td></tr>
+<tr><th>X</th><td></td><td></td><td>w0</td><td>w1</td><td>w2</td><td>w3</td></tr>
+</table></div>
+<p class="sub">With 4 ready warps the core issues every cycle. w0's second instruction enters F in cycle 5,
+after its first has written back in cycle 3, so even a branch has resolved in time.</p>
+<p>The cost: a block with only <b>one</b> warp can issue only every few cycles, and stalls completely on
+memory. That's the next section.</p>
+</section>
+
+<section id="latency">
+<h2>4 · Hiding latency with other warps</h2>
+<p>A CPU fights memory latency with caches, and riscv-core's memory answered in one cycle anyway. This
+GPU's memory takes <b>8 cycles</b>, plus queueing. When a warp issues a load, it goes to the LSU and the warp
+sleeps until the data is back. The scheduler simply skips it and runs other warps.</p>
+<p><code>test_warps_hide_latency</code> runs the same 512 vecadd threads two ways:</p>
+<div class="scroll"><table>
+<tr><th>Launch</th><th>Warps per core</th><th>Cycles</th></tr>
+<tr><td>64 blocks of 8 threads</td><td>1</td><td class="n">4,002</td></tr>
+<tr><td>16 blocks of 32 threads</td><td>4</td><td class="n">1,146</td></tr>
+</table></div>
+<p>Same work, <b>3.5× faster</b> with 4 warps. This is why real GPUs keep dozens of warps resident per
+SM: an H100 SM can hold 64. The register file has to hold all of them at once, which is why GPUs
+have huge register files (256 KB per SM on recent NVIDIA parts) and comparatively small caches.</p>
+</section>
+
+<section id="div">
+<h2>5 · Divergence: when threads in a warp disagree</h2>
+<p>All 8 lanes share one fetch. So what happens at <code>if (x is odd)</code> when lanes 1, 3, 5, 7 are odd
+and the rest are even? The warp can't go both ways at once, so it goes both ways <b>one after the other</b>.
+It switches off the lanes that don't belong on the current side. The bitmask of switched-on lanes is the
+<b>active mask</b>.</p>
+<p>Our rule (<b>min-PC</b>): every thread keeps its own PC. The scheduler runs the warp at the <b>smallest PC among
+its live threads</b>, with exactly the threads at that PC switched on. Trace it for one warp:</p>
+<div class="two"><pre>0x00  andi  t1, a1, 1        # odd?
+0x04  beqz  t1, even
+0x08  addi  a2, a2, 10       # odd side
+0x0c  j     done
+0x10  even: addi a2, a2, 20  # even side
+0x14  done: sw a2, 0(a3)</pre>
+<div><p>Lanes 1, 3, 5, 7 hold odd values. After the <code>beqz</code>, the odd lanes are at 0x08
+(not taken) and the even lanes are at 0x10 (taken). 0x08 is smaller, so the odd side runs first, then jumps to
+0x14 and waits there. Now 0x10 is the smallest, so the even side runs. Then everyone is at 0x14,
+and the warp is back to full width, without anyone telling it where the if/else ends.</p></div></div>
+<div class="scroll"><table class="mask">
+<tr><th>issue</th><th>PC</th><th>instruction</th><th>L0</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>useful</th></tr>
+<tr><td>1</td><td>0x00</td><td class="ins">andi t1, a1, 1</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td>8/8</td></tr>
+<tr><td>2</td><td>0x04</td><td class="ins">beqz t1, even</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td>8/8</td></tr>
+<tr><td>3</td><td>0x08</td><td class="ins">addi a2, a2, 10</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td>4/8</td></tr>
+<tr><td>4</td><td>0x0c</td><td class="ins">j done</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td class="wt">0x10</td><td class="on">●</td><td>4/8</td></tr>
+<tr><td>5</td><td>0x10</td><td class="ins">addi a2, a2, 20</td><td class="on">●</td><td class="wt">0x14</td><td class="on">●</td><td class="wt">0x14</td><td class="on">●</td><td class="wt">0x14</td><td class="on">●</td><td class="wt">0x14</td><td>4/8</td></tr>
+<tr><td>6</td><td>0x14</td><td class="ins">sw a2, 0(a3)</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td class="on">●</td><td>8/8</td></tr>
+</table></div>
+<p class="sub">● = lane active. A shaded cell shows the PC where that lane is waiting.</p>
+<p><b>SIMD efficiency</b> = useful lane-slots ÷ total lane-slots = (8+8+4+4+4+8) ÷ (6×8) = 36/48 = <b>75%</b>.
+The GPU counts this in hardware (<code>thread_instrs ÷ (warp_instrs × 8)</code>).</p>
+<p>Loops work the same way. Threads that still have iterations to go sit at lower PCs (inside the loop), so
+they keep running. Threads that are done wait at the exit. The warp leaves the loop only when its
+<i>slowest</i> thread does. That’s what costs Collatz: the benchmark in section 7 measures
+<b>40%</b> SIMD efficiency, so more than half the lanes sit idle at any moment.</p>
+<div class="note warn"><b>The one thing min-PC can't do.</b> Say lane 0 spins in a loop waiting for lane 1 (same warp) to set
+a flag, and lane 1's store is <i>later</i> in the program. Lane 0's PC is always the smaller one, so the warp only ever runs
+lane 0, lane 1 never gets to the store, and the warp deadlocks. Pre-2017 NVIDIA GPUs had the same problem with their
+reconvergence stack. Volta added <i>independent thread scheduling</i> so the hardware can occasionally run the other path.
+Our GPU keeps the simple rule. Fine-grained locking between threads of one warp just isn't allowed.</div>
+</section>
+
+<section id="coal">
+<h2>6 · Coalescing: why access patterns matter</h2>
+<p>Memory is read and written in 32-byte <b>lines</b> (8 words, one per lane). When a warp executes
+<code>lw</code>, the LSU looks at all 8 addresses, takes the first pending lane's line, serves <i>every</i> lane
+whose address falls in that same line with one request, and repeats until all lanes are served. Each request
+takes one memory slot, shared by both cores.</p>
+<p><code>test_coalescing</code> reads <code>in[i*stride]</code> with 256 threads (32 warps) and checks the exact
+number of lines sent. Per warp: 4 argument loads (all lanes read the same word → 1 line each),
+the gather, and 1 line for the store.</p>
+<div class="scroll"><table>
+<tr><th>stride</th><th>lanes' addresses span</th><th>lines for the gather</th><th>lines in total (32 warps)</th></tr>
+<tr><td>1</td><td>32 bytes</td><td class="n">1</td><td class="n">32 × 6 = 192</td></tr>
+<tr><td>2</td><td>64 bytes</td><td class="n">2</td><td class="n">32 × 7 = 224</td></tr>
+<tr><td>4</td><td>128 bytes</td><td class="n">4</td><td class="n">32 × 9 = 288</td></tr>
+<tr><td>8</td><td>256 bytes</td><td class="n">8</td><td class="n">32 × 13 = 416</td></tr>
+</table></div>
+<p>The RTL produced exactly these numbers. At stride 8 every lane needs its own line, and the gather costs 8× the
+memory traffic of stride 1 for the same amount of useful data. On a real GPU this is the first thing to fix in a slow kernel.
+NVIDIA's memory system also works in 32-byte sectors, so the rule of thumb carries over directly. Matmul shows both cases in one
+loop: <code>A[row][k]</code> is the same word for every lane (1 line, a broadcast), and <code>B[k][col]</code> is
+consecutive across lanes (1 line, coalesced).</p>
+</section>
+
+<section id="bench">
+<h2>7 · CPU vs GPU, measured</h2>
+<p><code>tb/test_bench.py</code> runs the same algorithm on the same data, on riscv-core's 5-stage pipeline (in lockstep with
+its golden model) and on the GPU, and checks both results. The CPU's memory answers in 1 cycle. For fairness the GPU runs twice:
+with 2-cycle memory (the fastest our memory model allows), and with the default 8.</p>
+<div class="scroll"><table>
+<tr><th>workload</th><th>CPU cycles</th><th>GPU, 2-cycle mem</th><th>GPU, 8-cycle mem</th><th>GPU SIMD efficiency</th></tr>
+<tr><td>vecadd (1024)</td><td class='n'>11,276</td><td class='n'>1,698 <b>(6.6×)</b></td><td class='n'>2,290 <b>(4.9×)</b></td><td class='n'>100%</td></tr>
+<tr><td>Collatz (256)</td><td class='n'>169,998</td><td class='n'>19,169 <b>(8.9×)</b></td><td class='n'>19,287 <b>(8.8×)</b></td><td class='n'>40%</td></tr>
+</table></div>
+<h3>Reading the table</h3>
+<ul>
+<li><b>Peak.</b> 2 cores × 8 lanes = 16 thread-instructions per cycle. The CPU's peak is 1, and it actually reaches
+0.82 instructions per cycle on vecadd and 0.64 on Collatz, because every taken branch flushes two instructions (the
+2-cycle penalty from Days 1–2). So speedups above 16× are possible against this CPU.</li>
+<li><b>vecadd is memory-bound.</b> Every lane is useful (100% SIMD efficiency), but each GPU thread runs 20 instructions
+(ID math, four argument loads, the bounds check, then the add), while the CPU loop needs 9 per element. That's more than 2× the work
+before we start. The GPU sustains 12.1 thread-instructions per cycle with 2-cycle memory and 8.9 with 8-cycle memory: 7 of every
+20 instructions are loads or stores, and a warp sleeps through each one.</li>
+<li><b>Collatz is compute-bound and divergent.</b> The cores issue an instruction on 91% of cycles, so there's plenty to do,
+but only 40% of the lanes in each issue are useful, so the GPU gets 5.8 useful thread-instructions per cycle.
+With full warps at the same issue rate it would be about 23× faster than the CPU instead of about 9×. Divergence cost it about 2.5×.
+Memory latency barely shows up: 160 memory lines in about 19,000 cycles.</li>
+</ul>
+<div class="note">The lesson isn't "GPU fast, CPU slow". The GPU needs <i>thousands of independent threads</i> to win. Give it one
+thread and it loses badly. A lone warp can issue only every third cycle (its next instruction waits for the previous one to
+write back), it uses 1 of 8 lanes, and it sleeps through every memory access. riscv-core runs that same thread at nearly one
+instruction per cycle. Throughput machine vs latency machine: that's why every real system has both.</div>
+</section>
+
+<section id="verif">
+<h2>8 · How we know it's right</h2>
+<ul>
+<li><b>Golden model.</b> Every kernel also runs on riscv-core's Python ISS, one thread at a time (a subclass adds
+<code>mul</code> and the ID registers). Final memory must match <b>byte for byte</b>, and the GPU's
+<code>thread_instrs</code> counter must equal the model's instruction count. A lane that runs when it
+shouldn't changes that count even if memory looks fine.</li>
+<li><b>Plain-Python check.</b> Each directed test also compares against a one-line Python answer, so a bug shared by the
+kernel and the model can't hide.</li>
+<li><b>Random kernels</b> (<code>randkernel.py</code>): nested data-dependent if/else, loops of 1–4 trips per thread, calls,
+early exits, uncoalesced gathers, byte/halfword stores, random grid and block sizes.</li>
+<li><b>Mutation testing</b> (<code>mutate.py</code>): 10 realistic bugs planted one at a time, for example "no divergence mask",
+"ECALL kills the whole warp", "SH writes only its low byte", "dispatcher launches one block too many". Result:
+<b>10/10 caught</b>. The first run said 9/10: "x0 becomes writable" survived. That wasn't a gap in the tests. The read
+port returns 0 for x0 no matter what the register file holds, so a write to x0 can never be seen. A bug nobody can observe is an
+<i>equivalent mutant</i>, and it has to be replaced, not "fixed". The replacement (x0 <i>read</i> from the register file) is caught
+immediately.</li>
+</ul>
+</section>
+
+<section id="real">
+<h2>9 · What an NVIDIA SM adds</h2>
+<div class="scroll"><table>
+<tr><th>Ours</th><th>NVIDIA (Hopper-class SM)</th></tr>
+<tr><td>simt_core</td><td>Streaming Multiprocessor (SM)</td></tr>
+<tr><td>8-thread warp</td><td>32-thread warp</td></tr>
+<tr><td>4 warps resident, 1 scheduler</td><td>up to 64 warps resident; 4 sub-partitions, each with its own scheduler issuing every cycle</td></tr>
+<tr><td>1 instruction in flight per warp</td><td>a scoreboard lets a warp issue independent instructions back to back</td></tr>
+<tr><td>8 integer ALUs</td><td>128 FP32 lanes plus INT32, FP64, special-function units and tensor cores</td></tr>
+<tr><td>min-PC reconvergence</td><td>compiler-placed convergence points plus independent thread scheduling (per-thread PCs, since Volta)</td></tr>
+<tr><td>no caches, one memory port</td><td>L1 / shared memory (up to 228 KB per SM), a large L2, HBM at terabytes per second</td></tr>
+<tr><td>—</td><td>shared memory and <code>__syncthreads()</code> barriers, so threads in a block can cooperate</td></tr>
+</table></div>
+<p>Natural next steps for this design, roughly in order of value: shared memory and a barrier instruction (makes a real
+tiled matmul possible), a scoreboard, a small L1, then hardening it with OpenLane like the systolic array.</p>
+</section>
+
+<section id="gate">
+<h2>10 · Gate quiz</h2>
+<p class="sub">Answer each out loud or on paper before opening it. Passing the gate means getting 7 of 8 without peeking.</p>
+<details><summary>1. In one sentence, what is shared and what is per-thread in a SIMT core?</summary><p>Shared: fetch, decode, scheduling and branch control (one instruction stream per warp). Per thread: registers, PC and an ALU lane. So 8 threads cost 8 datapaths but only one front end.</p></details>
+<details><summary>2. Why does our core need no forwarding and no load-use stall?</summary><p>A warp has at most one instruction in flight; its next instruction can't be fetched until the previous one has written back. The pipeline stays full with instructions from other warps, which are independent by construction.</p></details>
+<details><summary>3. A warp of 8 hits an if/else: 3 lanes take the "then" side (4 instructions, including its jump), 5 take the "else" side (6 instructions). What's the SIMD efficiency of just that region?</summary><p>Issues: 4 + 6 = 10. Useful lane-slots: 4×3 + 6×5 = 42. Efficiency = 42 / (10×8) = 52.5%.</p></details>
+<details><summary>4. With stride 2 (thread i reads word 2i), how many 32-byte lines does one warp's load need, and why?</summary><p>The 8 lanes span 8 × 8 = 64 bytes = 2 lines, so 2 requests. Stride 1 would be 1 line, stride 8 would be 8.</p></details>
+<details><summary>5. Why did the same 512 threads run 3.5× slower as 64 one-warp blocks than as 16 four-warp blocks?</summary><p>With one warp per core, every load leaves the core with nothing to issue for the whole memory latency. With four, the scheduler fills those cycles with the other warps. Latency is hidden by parallelism, not removed.</p></details>
+<details><summary>6. Explain why the min-PC rule makes an if/else reconverge without any hint about where it ends.</summary><p>Code after the if/else sits at a higher address than both sides. Whichever side is at the lower PC runs until it reaches the join point. Then the other side is the lowest and runs. Once both reach the join, all threads share one PC and the mask is full again.</p></details>
+<details><summary>7. Give a program that deadlocks on our GPU but would work on 8 separate CPUs.</summary><p>Two threads of the same warp: thread 0 spins <code>while (flag == 0);</code> and thread 1 later does <code>flag = 1</code> at a higher PC. Min-PC always picks thread 0's loop, so thread 1 never runs. On separate CPUs both make progress. (Volta's independent thread scheduling exists to fix this.)</p></details>
+<details><summary>8. Collatz has only 40% SIMD efficiency, yet the GPU beats the CPU by more on Collatz (8.8×) than on vecadd (4.9×). Why?</summary><p>vecadd is memory-bound and the GPU does more than 2× the CPU's instructions per element (per-thread ID math and argument loads), and warps sleep on every load. Collatz is a long compute loop: the cores issue almost every cycle and memory hardly matters, and the CPU itself runs at only 0.64 instructions per cycle because of taken-branch flushes. Divergence still throws away about 60% of the lanes (about 23× would be possible with full warps).</p></details>
+</section>
+</main></body></html>
