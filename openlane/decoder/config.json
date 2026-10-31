@@ -1,0 +1,17 @@
+{
+    "DESIGN_NAME": "weight_decoder",
+    "VERILOG_FILES": [
+        "dir::../../rtl/ew_pkg.sv",
+        "dir::../../rtl/ew_lane.sv",
+        "dir::../../rtl/weight_decoder.sv"
+    ],
+    "VERILOG_DEFINES": ["SYNTHESIS"],
+    "USE_SLANG": true,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "SYNTH_STRATEGY": "DELAY 4",
+    "FP_SIZING": "relative",
+    "FP_CORE_UTIL": 40,
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
+}
