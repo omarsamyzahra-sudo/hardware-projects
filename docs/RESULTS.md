@@ -50,8 +50,11 @@ decoder's own energy is included (130 nm, so the savings are conservative).
 | whole model from compressed weights, fused kernels | logits bit-identical, tokens identical to stock | measured |
 | peak GPU memory while generating | 1,077.7 → 791.9 MiB | measured |
 | speed vs. the same kernel on raw BF16 | 0.977× (whole model), 0.971–0.983× (one layer) | measured |
+| Nsight, gate_proj: raw kernel | 89% of DRAM peak, 14% SM: memory-bound | measured |
+| Nsight, gate_proj: ew kernel | 29% fewer DRAM bytes, 68% DRAM, 78% SM (ALU): compute-bound | measured |
 
-The GPU saves memory but not time: the decode work costs what the smaller
+The GPU saves memory but not time: Nsight shows the decode moves the
+bottleneck from DRAM to the ALUs, so the instructions cost what the smaller
 reads save. That is the case for decoding in hardware next to the MAC array.
 
 **External reference, not our measurement:** ZipServ (whose TCA-TBE format

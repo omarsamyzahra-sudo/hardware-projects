@@ -1,0 +1,939 @@
+[3668] ewgemv.exe@127.0.0.1
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.96
+    SM Frequency                    Ghz         1.65
+    Elapsed Cycles                cycle       12,162
+    Memory Throughput                 %        66.71
+    DRAM Throughput                   %        66.71
+    Duration                         us         7.36
+    L1/TEX Cache Throughput           %        19.23
+    L2 Cache Throughput               %        19.38
+    SM Active Cycles              cycle     9,801.80
+    Compute (SM) Throughput           %        11.06
+    ----------------------- ----------- ------------
+
+    OPT   Memory is more heavily utilized than Compute: Look at the Memory Workload Analysis section to identify the    
+          DRAM bottleneck. Check memory replay (coalescing) metrics to make sure you're efficiently utilizing the       
+          bytes transferred. Also consider whether it is possible to do more work per memory access (kernel fusion) or  
+          whether there are values you can (re)compute.                                                                 
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.51
+    Executed Ipc Elapsed  inst/cycle         0.42
+    Issue Slots Busy               %        11.06
+    Issued Ipc Active     inst/cycle         0.53
+    SM Busy                        %        11.06
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 90.77%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        47.92
+    Warp Cycles Per Executed Instruction           cycle        50.19
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 33.29%                                                                                          
+          On average, each warp of this workload spends 39.2 cycles being stalled waiting for a scoreboard dependency   
+          on a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited  
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 81.8% of the total average of 47.9 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (16, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.86
+    SM Frequency                    Ghz         1.66
+    Elapsed Cycles                cycle        5,226
+    Memory Throughput                 %        22.85
+    DRAM Throughput                   %        22.85
+    Duration                         us         3.14
+    L1/TEX Cache Throughput           %        16.23
+    L2 Cache Throughput               %         7.74
+    SM Active Cycles              cycle     1,659.10
+    Compute (SM) Throughput           %         3.80
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.09 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.43
+    Executed Ipc Elapsed  inst/cycle         0.15
+    Issue Slots Busy               %         3.80
+    Issued Ipc Active     inst/cycle         0.45
+    SM Busy                        %         3.80
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 96.83%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        16.87
+    Warp Cycles Per Executed Instruction           cycle        17.68
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 49.18%                                                                                          
+          On average, each warp of this workload spends 8.3 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 49.2% of the total average of 16.9 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (16, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.91
+    SM Frequency                    Ghz         1.67
+    Elapsed Cycles                cycle        5,071
+    Memory Throughput                 %        24.36
+    DRAM Throughput                   %        24.36
+    Duration                         us         3.04
+    L1/TEX Cache Throughput           %        15.64
+    L2 Cache Throughput               %         7.97
+    SM Active Cycles              cycle     1,720.53
+    Compute (SM) Throughput           %         3.75
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.09 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.41
+    Executed Ipc Elapsed  inst/cycle         0.14
+    Issue Slots Busy               %         3.75
+    Issued Ipc Active     inst/cycle         0.43
+    SM Busy                        %         3.75
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 96.87%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        16.47
+    Warp Cycles Per Executed Instruction           cycle        17.25
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 53.28%                                                                                          
+          On average, each warp of this workload spends 8.8 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 53.3% of the total average of 16.5 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.97
+    SM Frequency                    Ghz         1.65
+    Elapsed Cycles                cycle       12,245
+    Memory Throughput                 %        65.86
+    DRAM Throughput                   %        65.86
+    Duration                         us         7.42
+    L1/TEX Cache Throughput           %        19.47
+    L2 Cache Throughput               %        19.26
+    SM Active Cycles              cycle     9,683.27
+    Compute (SM) Throughput           %        11.05
+    ----------------------- ----------- ------------
+
+    OPT   Memory is more heavily utilized than Compute: Look at the Memory Workload Analysis section to identify the    
+          DRAM bottleneck. Check memory replay (coalescing) metrics to make sure you're efficiently utilizing the       
+          bytes transferred. Also consider whether it is possible to do more work per memory access (kernel fusion) or  
+          whether there are values you can (re)compute.                                                                 
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.52
+    Executed Ipc Elapsed  inst/cycle         0.42
+    Issue Slots Busy               %        11.05
+    Issued Ipc Active     inst/cycle         0.54
+    SM Busy                        %        11.05
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 90.77%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        47.95
+    Warp Cycles Per Executed Instruction           cycle        50.21
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 34.14%                                                                                          
+          On average, each warp of this workload spends 39.2 cycles being stalled waiting for a scoreboard dependency   
+          on a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited  
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 81.7% of the total average of 47.9 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (608, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.99
+    SM Frequency                    Ghz         1.68
+    Elapsed Cycles                cycle       55,070
+    Memory Throughput                 %        89.15
+    DRAM Throughput                   %        89.15
+    Duration                         us        32.80
+    L1/TEX Cache Throughput           %        22.12
+    L2 Cache Throughput               %        37.41
+    SM Active Cycles              cycle    46,342.07
+    Compute (SM) Throughput           %        14.06
+    ----------------------- ----------- ------------
+
+    INF   This workload is utilizing greater than 80.0% of the available compute or memory performance of this device.  
+          To further improve performance, work will likely need to be shifted from the most utilized to another unit.   
+          Start by analyzing DRAM in the Memory Workload Analysis section.                                              
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.58
+    Executed Ipc Elapsed  inst/cycle         0.56
+    Issue Slots Busy               %        14.06
+    Issued Ipc Active     inst/cycle         0.59
+    SM Busy                        %        14.06
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 87.83%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        70.42
+    Warp Cycles Per Executed Instruction           cycle        71.14
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 10.85%                                                                                          
+          On average, each warp of this workload spends 64.8 cycles being stalled waiting for a scoreboard dependency   
+          on a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited  
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 92.0% of the total average of 70.4 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (608, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.98
+    SM Frequency                    Ghz         1.67
+    Elapsed Cycles                cycle       54,305
+    Memory Throughput                 %        89.64
+    DRAM Throughput                   %        89.64
+    Duration                         us        32.35
+    L1/TEX Cache Throughput           %        22.08
+    L2 Cache Throughput               %        37.83
+    SM Active Cycles              cycle    46,429.33
+    Compute (SM) Throughput           %        14.03
+    ----------------------- ----------- ------------
+
+    INF   This workload is utilizing greater than 80.0% of the available compute or memory performance of this device.  
+          To further improve performance, work will likely need to be shifted from the most utilized to another unit.   
+          Start by analyzing DRAM in the Memory Workload Analysis section.                                              
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.58
+    Executed Ipc Elapsed  inst/cycle         0.56
+    Issue Slots Busy               %        14.03
+    Issued Ipc Active     inst/cycle         0.59
+    SM Busy                        %        14.03
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 87.85%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        70.43
+    Warp Cycles Per Executed Instruction           cycle        71.15
+    Avg. Active Threads Per Warp                                28.05
+    Avg. Not Predicated Off Threads Per Warp                    27.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 10.36%                                                                                          
+          On average, each warp of this workload spends 64.7 cycles being stalled waiting for a scoreboard dependency   
+          on a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited  
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 91.8% of the total average of 70.4 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_bf16<16>(const unsigned short *, const unsigned short *, float *, int, int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.99
+    SM Frequency                    Ghz         1.68
+    Elapsed Cycles                cycle       55,322
+    Memory Throughput                 %        88.97
+    DRAM Throughput                   %        88.97
+    Duration                         us        32.93
+    L1/TEX Cache Throughput           %        20.22
+    L2 Cache Throughput               %        31.22
+    SM Active Cycles              cycle    46,403.03
+    Compute (SM) Throughput           %         9.97
+    ----------------------- ----------- ------------
+
+    INF   This workload is utilizing greater than 80.0% of the available compute or memory performance of this device.  
+          To further improve performance, work will likely need to be shifted from the most utilized to another unit.   
+          Start by analyzing DRAM in the Memory Workload Analysis section.                                              
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         0.41
+    Executed Ipc Elapsed  inst/cycle         0.39
+    Issue Slots Busy               %         9.97
+    Issued Ipc Active     inst/cycle         0.42
+    SM Busy                        %         9.97
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 90.6%                                                                                     
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        69.80
+    Warp Cycles Per Executed Instruction           cycle        70.66
+    Avg. Active Threads Per Warp                                30.23
+    Avg. Not Predicated Off Threads Per Warp                    30.08
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 11.03%                                                                                          
+          On average, each warp of this workload spends 66.0 cycles being stalled waiting for a scoreboard dependency   
+          on a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited  
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 94.6% of the total average of 69.8 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.97
+    SM Frequency                    Ghz         1.63
+    Elapsed Cycles                cycle       13,971
+    Memory Throughput                 %        40.08
+    DRAM Throughput                   %        40.08
+    Duration                         us         8.58
+    L1/TEX Cache Throughput           %        38.57
+    L2 Cache Throughput               %        12.45
+    SM Active Cycles              cycle    11,150.40
+    Compute (SM) Throughput           %        53.65
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.62 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.29
+    Executed Ipc Elapsed  inst/cycle         1.86
+    Issue Slots Busy               %        47.02
+    Issued Ipc Active     inst/cycle         2.31
+    SM Busy                        %        53.65
+    -------------------- ----------- ------------
+
+    INF   ALU is the highest-utilized pipeline (53.6%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. It is well-utilized, but       
+          should not be a bottleneck. Based on the number of executed instructions, the highest utilized pipeline       
+          (53.6%) is ALU. It executes integer and logic operations. Comparing the two, the overall pipeline             
+          utilization appears to be caused by frequent, low-latency instructions. See the Profiling Guide               
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-decoder) or hover over the          
+          pipeline name to understand the workloads handled by each pipeline. The Instruction Statistics section shows  
+          the mix of executed instructions for this workload. Check the Warp State Statistics section for which         
+          reasons cause warps to stall.                                                                                 
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        10.22
+    Warp Cycles Per Executed Instruction           cycle        10.33
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.32
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 31.94%                                                                                          
+          On average, each warp of this workload spends 3.3 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 31.9% of the total average of 10.2 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 14.55%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (16, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.89
+    SM Frequency                    Ghz         1.67
+    Elapsed Cycles                cycle        7,882
+    Memory Throughput                 %        11.34
+    DRAM Throughput                   %        11.34
+    Duration                         us         4.70
+    L1/TEX Cache Throughput           %        19.35
+    L2 Cache Throughput               %         4.24
+    SM Active Cycles              cycle     3,175.03
+    Compute (SM) Throughput           %        13.68
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.09 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         1.15
+    Executed Ipc Elapsed  inst/cycle         0.47
+    Issue Slots Busy               %        12.01
+    Issued Ipc Active     inst/cycle         1.16
+    SM Busy                        %        13.68
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 86.32%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle         6.69
+    Warp Cycles Per Executed Instruction           cycle         6.76
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.33
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 32.74%                                                                                          
+          On average, each warp of this workload spends 2.2 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 32.7% of the total average of 6.7 cycles    
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 3.708%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (16, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.95
+    SM Frequency                    Ghz         1.67
+    Elapsed Cycles                cycle        7,742
+    Memory Throughput                 %        11.58
+    DRAM Throughput                   %        11.58
+    Duration                         us         4.64
+    L1/TEX Cache Throughput           %        19.86
+    L2 Cache Throughput               %         4.28
+    SM Active Cycles              cycle     3,094.17
+    Compute (SM) Throughput           %        13.83
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.09 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         1.18
+    Executed Ipc Elapsed  inst/cycle         0.48
+    Issue Slots Busy               %        12.13
+    Issued Ipc Active     inst/cycle         1.19
+    SM Busy                        %        13.83
+    -------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 86.17%                                                                                    
+          All compute pipelines are under-utilized. Either this workload is very small or it doesn't issue enough warps 
+          per scheduler. Check the Launch Statistics and Scheduler Statistics sections for further details.             
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle         6.52
+    Warp Cycles Per Executed Instruction           cycle         6.60
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.29
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 33.26%                                                                                          
+          On average, each warp of this workload spends 2.2 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 33.3% of the total average of 6.5 cycles    
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 3.763%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.94
+    SM Frequency                    Ghz         1.62
+    Elapsed Cycles                cycle       13,697
+    Memory Throughput                 %        40.95
+    DRAM Throughput                   %        40.95
+    Duration                         us         8.42
+    L1/TEX Cache Throughput           %        38.23
+    L2 Cache Throughput               %        12.68
+    SM Active Cycles              cycle    11,249.27
+    Compute (SM) Throughput           %        53.40
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.62 full     
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.27
+    Executed Ipc Elapsed  inst/cycle         1.85
+    Issue Slots Busy               %        46.80
+    Issued Ipc Active     inst/cycle         2.29
+    SM Busy                        %        53.40
+    -------------------- ----------- ------------
+
+    INF   ALU is the highest-utilized pipeline (53.4%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. It is well-utilized, but       
+          should not be a bottleneck. Based on the number of executed instructions, the highest utilized pipeline       
+          (53.4%) is ALU. It executes integer and logic operations. Comparing the two, the overall pipeline             
+          utilization appears to be caused by frequent, low-latency instructions. See the Profiling Guide               
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-decoder) or hover over the          
+          pipeline name to understand the workloads handled by each pipeline. The Instruction Statistics section shows  
+          the mix of executed instructions for this workload. Check the Warp State Statistics section for which         
+          reasons cause warps to stall.                                                                                 
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        10.14
+    Warp Cycles Per Executed Instruction           cycle        10.25
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.32
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 30.2%                                                                                           
+          On average, each warp of this workload spends 3.1 cycles being stalled waiting for a scoreboard dependency on 
+          a L1TEX (local, global, surface, texture) operation. Find the instruction producing the data being waited     
+          upon to identify the culprit. To reduce the number of cycles waiting on L1TEX data accesses verify the        
+          memory access patterns are optimal for the target architecture, attempt to increase cache hit rates by        
+          increasing data locality (coalescing), or by changing the cache configuration. Consider moving frequently     
+          used data to shared memory. Stall samples are reported on the consumer instruction waiting for the result,    
+          not necessarily on the producer. When this reason dominates, the kernel is memory-latency-bound, which is     
+          not necessarily memory-bandwidth-bound; prefer latency-hiding changes such as ILP, unrolling, or pipelining   
+          when bandwidth is not saturated. This stall type represents about 30.2% of the total average of 10.1 cycles   
+          between issuing two instructions.                                                                             
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 14.49%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (608, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.98
+    SM Frequency                    Ghz         1.65
+    Elapsed Cycles                cycle       51,639
+    Memory Throughput                 %        68.19
+    DRAM Throughput                   %        68.19
+    Duration                         us        31.26
+    L1/TEX Cache Throughput           %        48.92
+    L2 Cache Throughput               %        17.21
+    SM Active Cycles              cycle    47,724.93
+    Compute (SM) Throughput           %        78.25
+    ----------------------- ----------- ------------
+
+    OPT   Compute is more heavily utilized than Memory: Look at the Compute Workload Analysis section to see what the   
+          compute pipelines are spending their time doing. Also, consider whether any computation is redundant and      
+          could be reduced or moved to look-up tables.                                                                  
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.90
+    Executed Ipc Elapsed  inst/cycle         2.71
+    Issue Slots Busy               %        68.11
+    Issued Ipc Active     inst/cycle         2.92
+    SM Busy                        %        78.25
+    -------------------- ----------- ------------
+
+    OPT   ALU is the highest-utilized pipeline (78.3%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. The pipeline is                
+          well-utilized, but might become a bottleneck if more work is added. Based on the number of executed           
+          instructions, the highest utilized pipeline (78.3%) is ALU. It executes integer and logic operations.         
+          Comparing the two, the overall pipeline utilization appears to be caused by frequent, low-latency             
+          instructions. See the Profiling Guide                                                                         
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-decoder) or hover over the          
+          pipeline name to understand the workloads handled by each pipeline. The Instruction Statistics section shows  
+          the mix of executed instructions for this workload. Check the Warp State Statistics section for which         
+          reasons cause warps to stall.                                                                                 
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        14.07
+    Warp Cycles Per Executed Instruction           cycle        14.13
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.30
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 30.36%                                                                                    
+          On average, each warp of this workload spends 4.3 cycles being stalled Not selected warps are eligible warps  
+          that were not picked by the micro scheduler to issue that cycle as another warp was selected. This is a       
+          scheduler state rather than a true stall. A high number of not selected warps typically means you have        
+          sufficient warps to cover warp latencies and you may consider reducing the number of active warps to          
+          possibly increase cache coherence and data locality. This stall type represents about 30.4% of the total      
+          average of 14.1 cycles between issuing two instructions.                                                      
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 21.27%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (608, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.98
+    SM Frequency                    Ghz         1.65
+    Elapsed Cycles                cycle       51,310
+    Memory Throughput                 %        68.74
+    DRAM Throughput                   %        68.74
+    Duration                         us        31.07
+    L1/TEX Cache Throughput           %        48.98
+    L2 Cache Throughput               %        17.31
+    SM Active Cycles              cycle    47,663.03
+    Compute (SM) Throughput           %        77.85
+    ----------------------- ----------- ------------
+
+    INF   Compute and Memory are well-balanced: To reduce runtime, both computation and memory traffic must be reduced. 
+          Check both the Compute Workload Analysis and Memory Workload Analysis sections.                               
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.91
+    Executed Ipc Elapsed  inst/cycle         2.70
+    Issue Slots Busy               %        67.75
+    Issued Ipc Active     inst/cycle         2.92
+    SM Busy                        %        77.85
+    -------------------- ----------- ------------
+
+    OPT   ALU is the highest-utilized pipeline (77.8%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. The pipeline is                
+          well-utilized, but might become a bottleneck if more work is added. Based on the number of executed           
+          instructions, the highest utilized pipeline (77.8%) is ALU. It executes integer and logic operations.         
+          Comparing the two, the overall pipeline utilization appears to be caused by frequent, low-latency             
+          instructions. See the Profiling Guide                                                                         
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-decoder) or hover over the          
+          pipeline name to understand the workloads handled by each pipeline. The Instruction Statistics section shows  
+          the mix of executed instructions for this workload. Check the Warp State Statistics section for which         
+          reasons cause warps to stall.                                                                                 
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle        14.06
+    Warp Cycles Per Executed Instruction           cycle        14.11
+    Avg. Active Threads Per Warp                                28.55
+    Avg. Not Predicated Off Threads Per Warp                    23.29
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 30.74%                                                                                    
+          On average, each warp of this workload spends 4.3 cycles being stalled Not selected warps are eligible warps  
+          that were not picked by the micro scheduler to issue that cycle as another warp was selected. This is a       
+          scheduler state rather than a true stall. A high number of not selected warps typically means you have        
+          sufficient warps to cover warp latencies and you may consider reducing the number of active warps to          
+          possibly increase cache coherence and data locality. This stall type represents about 30.7% of the total      
+          average of 14.1 cycles between issuing two instructions.                                                      
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on         
+          sampling data. The Profiling Guide                                                                            
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details    
+          on each stall reason.                                                                                         
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 21.19%                                                                                          
+          Instructions are executed in warps, which are groups of 32 threads. Optimal instruction throughput is         
+          achieved if all 32 threads of a warp execute the same instruction. The chosen launch configuration, early     
+          thread completion, and divergent flow control can significantly lower the number of active threads in a warp  
+          per cycle. This workload achieves an average of 28.6 threads being active per cycle. This is further reduced  
+          to 23.3 threads per warp due to predication. The compiler may use predication to avoid an actual branch.      
+          Instead, all instructions are scheduled, but a per-thread condition code or predicate controls which threads  
+          execute the instructions. Try to avoid different execution paths within a warp when possible.                 
+
+  void gemv_ew<16>(const unsigned char *, const unsigned char *, const unsigned char *, const unsigned int *, const unsigned short *, float *, int, int, unsigned int) (112, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.98
+    SM Frequency                    Ghz         1.64
+    Elapsed Cycles                cycle       52,503
+    Memory Throughput                 %        67.76
+    DRAM Throughput                   %        67.76
+    Duration                         us        31.87
+    L1/TEX Cache Throughput           %        41.65
+    L2 Cache Throughput               %        17.21
+    SM Active Cycles              cycle    47,039.30
+    Compute (SM) Throughput           %        68.31
+    ----------------------- ----------- ------------
+
+    INF   Compute and Memory are well-balanced: To reduce runtime, both computation and memory traffic must be reduced. 
+          Check both the Compute Workload Analysis and Memory Workload Analysis sections.                               
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.59
+    Executed Ipc Elapsed  inst/cycle         2.31
+    Issue Slots Busy               %        57.87
+    Issued Ipc Active     inst/cycle         2.60
+    SM Busy                        %        68.31
+    -------------------- ----------- ------------
+
+    OPT   ALU is the highest-utilized pipeline (68.3%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. The pipeline is                
+          well-utilized, but might become a bottleneck if more work is added. Based on the number of executed           
+          instructions, the highest utilized pipeline (68.3%) is ALU. It executes integer and logic operations.         
+          Comparing the two, the overall pipeline utilization appears to be caused by frequent, low-latency             
+          instructions. See the Profiling Guide                                                                         
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-decoder) or hover over the          
+          pipeline name to understand the workloads handled by each pipeline. The Instruction Statistics section shows  
+          the mix of executed instructions for this workload. Check the Warp State Statistics section for which         
+          reasons cause warps to stall.                                                                                 
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle         8.80
+    Warp Cycles Per Executed Instruction           cycle         8.82
+    Avg. Active Threads Per Warp                                30.61
+    Avg. Not Predicated Off Threads Per Warp                    24.71
+    ---------------------------------------- ----------- ------------
+

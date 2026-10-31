@@ -428,6 +428,37 @@ Reading:
   `xs[16*L-1:64]`, an empty slice when one beat is the whole word. Now a
   generate branch (`g_x1` / `g_xn`); L = 8 and 16 elaborate the same logic.
 
+## 2026-10-31 — Nsight Compute on the GPU kernels **[measured]**
+
+`ncu --set full` on the G = 16 kernels, all 7 projections of the layer-12 data
+(`gpu/results/nsight/gemv_g16.ncu-repz`, counters in `raw.csv`, Nsight's
+findings in `details.txt`). Nsight locks clocks to base for profiling
+(SM ~1.66 GHz vs. ~2.0 GHz in the benchmark), so durations differ from the
+benchmark table; the ratios are what matter.
+
+| gate_proj (4864×896) | raw BF16 | exponent window |
+|---|---|---|
+| DRAM bytes read | 8.72 MB | **6.16 MB** (−29%) |
+| DRAM throughput, % of peak | **89%** | 68% |
+| SM (compute) throughput, % of peak | 14% | **78%** (ALU pipe the busiest) |
+| issue slots busy | 14% | 68% |
+| cycles per issued instruction (warp) | 70 (waiting on memory) | 14 |
+| duration | 32.8 µs | 31.3 µs |
+| registers / thread | 32 | 40 |
+
+Whole layer: the ew kernel reads **1.417× fewer bytes** (29.87 → 21.08 MB)
+and takes 120.5 µs vs. 119.0 µs (0.988×). k/v (128 rows, 16 blocks) are
+launch-bound in both.
+
+Reading: this is the answer to "why doesn't the GPU get the 1.42×". The raw
+kernel is memory-bound (89% of DRAM peak, SMs idle 86% of the time). The
+decode kernel moves the bottleneck: it reads 29% fewer bytes, but rebuilding
+exponents and routing escapes keeps the ALU pipe at 78%, so it's compute-bound
+and DRAM drops to 68%. The bytes saved are spent on decode instructions. A
+hardware decoder does that work in dedicated logic beside the MACs, which is
+why the RTL keeps 99.9% of the ceiling. (Nsight estimates ~21% headroom in the
+ew kernel's instruction mix; not tuned, per the brief.)
+
 ## Open (to do)
 
 Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight
@@ -438,7 +469,7 @@ baseline).
 Done 2026-10-31 (entries above): bandwidth-bound real layer (1.4246×, 99.9%
 of ceiling); decoder layout, gate-level sim of the routed netlist, power from
 real switching, energy per token; fused kernels in the whole-model demo;
-functional coverage (541/541 with L = 4); design-space sweep in simulation.
+functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels; design-space sweep in simulation.
 
 Running / queued (WSL, one layout at a time):
 1. Engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896).
@@ -450,8 +481,6 @@ Not doing, and why:
   lint is clean (entry above). Revisit on Linux if sim time matters.
 - SRAM macros (OpenRAM): only needed if a layout is congestion-bound; the
   decoder routed clean at 40% utilization.
-- Nsight Compute on `gemv_ew`: needs GPU performance counters enabled in the
-  NVIDIA Control Panel (Rayan's call; admin setting).
 - Vivado synth/impl/power: license tier doesn't cover 2026.1.1; Yosys
   estimates in `fpga/yosys/` and the SKY130 numbers stand in.
 - RTX 3080 rerun: dropped (the 3060 Laptop is the GPU baseline).
