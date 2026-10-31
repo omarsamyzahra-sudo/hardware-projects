@@ -1,0 +1,14 @@
+Qwen2.5-0.5B end to end on NVIDIA GeForce RTX 3060 Laptop GPU (torch 2.11.0+cu128) [measured]
+
+                                        stock BF16   exponent-window
+weight matrices in VRAM                  942.2 MiB         662.7 MiB   1.422x smaller (11.255 bits/weight)
+all GPU memory after load                950.2 MiB         665.3 MiB
+peak GPU memory, generating             1077.7 MiB        1085.4 MiB
+tokens/s (decode not fused: not the chip)            13.2               0.7
+
+decoded weights == original, all 169 matrices (bitwise, decoded on GPU): True
+'The capital of France is': tokens identical True, logits bit-identical True
+'def fibonacci(n):': tokens identical True, logits bit-identical True
+'In a lossless compression scheme, the decoder must': tokens identical True, logits bit-identical True
+
+variant: LM head decoded in 8192-row slices (no 272 MB scratch): peak 1184.0 MiB, tokens identical True, logits bit-identical False

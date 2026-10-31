@@ -68,3 +68,13 @@ def test_real():
         pytest.skip("no model in analysis/weights (run analysis/measure.py)")
     from test_top import _run
     _run("real_l8_b3", module="test_real", mem_words=1 << 23)   # 64 MB: a layer twice
+
+
+def test_real_bw8():
+    """Same jobs with DRAM as the bottleneck: 8 bytes/cycle shared by all ports,
+    half what raw BF16 needs at L = 8 (the setting of the synthetic run in
+    LEDGER.md), so both modes are bandwidth-bound and cycles follow bytes."""
+    if not list(WEIGHTS.glob("*.safetensors")):
+        pytest.skip("no model in analysis/weights (run analysis/measure.py)")
+    from test_top import _run
+    _run("real_l8_b3_bw8", module="test_real", bw=(8, 1), mem_words=1 << 23)

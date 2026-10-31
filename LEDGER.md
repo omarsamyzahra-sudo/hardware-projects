@@ -244,6 +244,36 @@ per cycle on gate/up (≤ 409 cycles over 545k), even at 2.6% escapes with
 the worst measured bursts. The STALL_ESC counter wasn't read by this test;
 the bound comes from the cycle counts.
 
+## 2026-10-31 — whole model end to end on the GPU, weights compressed in VRAM **[measured]**
+
+`gpu/e2e_demo.py` on the RTX 3060 Laptop (torch 2.11.0+cu128, transformers
+5.22.1, eager attention, deterministic cuBLAS workspace). Stock Hugging Face
+Qwen2.5-0.5B vs. the same model with all 169 distinct weight matrices (the
+tied embedding / LM head stored once) held in the exponent-window format in
+VRAM and decoded on the GPU at each use. Three prompts, 64 greedy tokens
+each. Full table: `gpu/results/e2e_rtx3060-laptop.txt`.
+
+| | stock BF16 | exponent-window |
+|---|---|---|
+| weight matrices in VRAM | 942.2 MiB | **662.7 MiB (1.422× smaller, 11.255 bits/weight incl. the GPU's 32-bit per-row escape index)** |
+| all GPU memory after load | 950.2 MiB | 665.3 MiB |
+| peak GPU memory while generating | 1077.7 MiB | 1085.4 MiB |
+| tokens/s | 13.2 | 0.7 |
+
+- **Every matrix decoded on the GPU equals the original bit for bit (169/169).**
+- **All 192 generated tokens identical, and the logits at every step
+  bit-identical** (SHA-256 over the BF16 logits), all three prompts.
+- Variant with the LM head decoded in 8192-row slices: tokens identical,
+  logits *not* bit-identical (cuBLAS sums differently for the smaller
+  shapes; the weights are still exact), peak 1184.0 MiB.
+
+Reading: the format is lossless on the whole model and the weights at rest
+take 1.42× less memory. Peak memory and speed are this demo's decoder, not
+the format: it's unfused PyTorch tensor ops that unpack each matrix (the LM
+head into a 272 MB scratch buffer) before every use, so peak ≈ stock and
+it's ~19× slower. A decoder fused into the matmul (the RTL, or
+`gpu/ewgemv.cu`'s kernel) has no scratch buffer. Not the chip.
+
 ## Open — home PC
 
 1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
