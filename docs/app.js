@@ -26,9 +26,10 @@ function Hero() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     (async () => {
       try {
-        const [{ mountArray }, data] = await Promise.all([import("./hero3d.js"), fetch("assets/hero_array.json").then((r) => r.json())]);
+        const [{ mountDecoder }, head, buf] = await Promise.all([import("./hero3d.js"),
+          fetch("assets/hero_decoder.json").then((r) => r.json()), fetch("assets/hero_decoder.bin").then((r) => r.arrayBuffer())]);
         if (dead) return;
-        stop = mountArray(canvas.current, { data, reducedMotion, onReady: () => setReady(true) });
+        stop = mountDecoder(canvas.current, { head, buf, reducedMotion, onReady: () => setReady(true) });
         if (!stop) setNoGL(true);
       } catch (e) { console.warn(e); setNoGL(true); }
     })();
@@ -50,9 +51,10 @@ function Hero() {
         <a class="btn-ghost" href=${`mailto:${EMAIL}`}>Email</a>
       </div>
     </div>
-    <p class="hero-cap mono small">My 8×8 systolic array’s SKY130 layout (1.96 mm), every logic cell where the placer put it,
-      coloured by its job. <span class="cy">●</span> activations flow right, <span class="am">●</span> partial sums flow down,
-      skewed one cycle per PE, as in the RTL.</p>
+    <p class="hero-cap mono small">My LLM weight decoder’s SKY130 layout (0.37 mm), every cell and wire where the tools put
+      it, coloured by its job, decoding one 8-weight chunk per beat: <span class="vi">●</span> codes leave the tile registers, <span class="ye">●</span> eight
+      lanes rebuild the exponents, <span class="am">●</span> the chunk lands in the output registers; a <span class="pk">●</span> lane that escapes
+      pulls its byte from the window.</p>
   </header>`;
 }
 
