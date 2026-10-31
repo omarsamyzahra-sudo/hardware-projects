@@ -1,0 +1,22 @@
+{
+    "DESIGN_NAME": "core",
+    "VERILOG_FILES": [
+        "dir::../rtl/rv32i_pkg.sv",
+        "dir::../rtl/alu.sv",
+        "dir::../rtl/branch_unit.sv",
+        "dir::../rtl/immgen.sv",
+        "dir::../rtl/decoder.sv",
+        "dir::../rtl/regfile.sv",
+        "dir::../rtl/csr.sv",
+        "dir::../rtl/core.sv"
+    ],
+    "VERILOG_DEFINES": ["SYNTHESIS"],
+    "USE_SLANG": true,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "SYNTH_STRATEGY": "DELAY 4",
+    "FP_SIZING": "relative",
+    "FP_CORE_UTIL": 40,
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
+}

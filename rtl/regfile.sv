@@ -29,9 +29,13 @@ module regfile (
     logic [31:0] regs [31:0];
 
     // x0 is never written, so regs[0] stays at its initial value of zero.
+    // Simulation only: ASIC flops have no power-up value, and the read ports
+    // below force x0 to zero anyway.
+`ifndef SYNTHESIS
     initial begin
         for (int i = 0; i < 32; i++) regs[i] = 32'd0;
     end
+`endif
 
     always_ff @(posedge clk) begin
         if (rd_we && rd_addr != 5'd0)
