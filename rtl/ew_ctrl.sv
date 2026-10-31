@@ -3,7 +3,7 @@
 // The CPU side is one request/response handshake per custom instruction:
 // cmd_valid with funct3/rs1/rs2; the instruction completes in the cycle
 // cmd_ready is high, and cmd_rdata (combinational) is its rd result. The
-// core holds the instruction in EX while cmd_ready is low, which is how
+// core holds the instruction in MEM while cmd_ready is low, which is how
 // GEMV.WAIT blocks. Encodings: docs/ARCH.md §3.
 //
 // A job: GEMV.RUN latches rows/cols, then one cycle of `clear` (empties every

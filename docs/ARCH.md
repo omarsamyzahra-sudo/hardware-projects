@@ -77,7 +77,7 @@ mux per code bit).
 ### 1.4 Escape distribution across lanes
 `m_i = (code_i == 0)`; slot `s_i = popcount(m_0 .. m_{i-1})` (a prefix
 popcount over L bits); lane i takes `win[s_i]` where `win` is a byte window
-holding the next `WB = 2L` escape bytes, and the window shifts by
+holding the next `WB = L + 8` escape bytes, and the window shifts by
 `popcount(m)` after the cycle. The window refills from the 64-bit escape
 FIFO 8 bytes at a time whenever it has room.
 
@@ -87,7 +87,7 @@ chunk waits; lanes never issue partially. Worst case (all L lanes escape
 for many cycles) runs at 8 escape bytes/cycle, i.e. full speed up to L = 8
 and L/8 slower beyond that while the burst lasts.
 
-**Sizing:** `WB = 2L` covers one full-escape chunk plus a refill word. The
+**Sizing:** `WB = L + 8` covers one full-escape chunk plus a refill word. The
 escape FIFO depth (default 64 words = 512 bytes) must cover the largest
 escape burst in any 256-weight window that arrives faster than the escape
 port can refill. **TBD from Phase 1** (`max escapes in N = 16/64/256`);
@@ -155,7 +155,7 @@ budget (§5), which stands in for the DRAM until the board numbers are in.
 ## 3. Control (brief §3.4)
 
 **Core:** our `riscv-core` (5-stage RV32I, this repo's sibling), extended
-with a coprocessor port: custom-0 instructions stall in EX until
+with a coprocessor port: custom-0 instructions wait in MEM until
 `ew_ctrl` answers, and the answer goes to `rd`. Chosen over VexRiscv /
 PicoRV32 because it's ours and verified (formal + riscv-tests); over the
 Zynq PS because the Arty has no PS and the same driver should run on both.
@@ -186,7 +186,7 @@ Driver: `sw/driver/` (C + assembly) runs one decoder layer's projections
 | escape bursts stall lanes | stall rule above; FIFO depth from measured worst case (Phase 1); `STALL_ESC` counter |
 | three-stream DRAM efficiency | separate 4 KB regions, 16-beat bursts, up to 4 outstanding per port; esc stream is small, its bursts may be short at the tail |
 | matrices on raw bypass (Gate 1) | `DEC.BYPASS` per job, switching costs nothing (a register) |
-| decoder on the critical path | lane is ~3 LUT levels; prefix popcount + window mux is the long part. Build option `DEC_PIPE` adds a register after the decoder if Phase 6 timing says so |
+| decoder on the critical path | lane is ~3 LUT levels; prefix popcount + window mux is the long part. If Phase 6 timing says so, add a register after the decoder (not built yet; the output-credit rule would need one more slot) |
 | accumulator loop limits Fmax | see §2 |
 
 ## 5. Verification view

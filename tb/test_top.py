@@ -41,8 +41,9 @@ DUMPFILE = os.environ.get("EW_DUMPFILE", "dump.hex")
 
 # ------------------------------------------------------------------ helpers
 class Engine:
-    def __init__(self, dut):
+    def __init__(self, dut, dec=None):
         self.dut = dut
+        self.dec = dec if dec is not None else dut.u_dut.u_dec    # the decoder the monitor watches
         self.expect = []          # decoded chunks the monitor should see, in order
         self.seen = 0
         self.errors = []
@@ -85,8 +86,7 @@ class Engine:
 
     async def _monitor(self):
         """Every chunk the decoder hands over must be the next expected one."""
-        d = self.dut
-        dec = d.u_dut.u_dec
+        d, dec = self.dut, self.dec
         while True:
             await FallingEdge(d.clk)
             await ReadOnly()
@@ -323,6 +323,12 @@ def test_top_code_bits():
     for b in (2, 4):
         _run(f"top_l8_b{b}", code_bits=b, testcase="test_all_escaped,test_edge_exponents,test_random",
              env={"RAND_SEEDS": "30"})
+
+
+def test_top_bw_limited():
+    """Cycle comparison with the memory at 8 bytes/cycle: the raw baseline
+    needs 16 (L=8 x 2 bytes), so both modes are bandwidth-bound here."""
+    _run("top_l8_b3_bw8", bw=(8, 1), testcase="test_cycles")
 
 
 def test_top_l16():

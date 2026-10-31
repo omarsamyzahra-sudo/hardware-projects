@@ -17,6 +17,9 @@ RTL = ["rtl/ew_pkg.sv", "rtl/bf16_mul.sv", "rtl/fp32_add.sv", "rtl/ew_lane.sv",
        "rtl/sync_fifo.sv", "rtl/axi_rd_stream.sv", "rtl/axi_wr_stream.sv",
        "rtl/weight_decoder.sv", "rtl/gemv_core.sv", "rtl/ew_ctrl.sv", "rtl/ew_top.sv"]
 TB_TOP = RTL + ["tb/axi_mem.sv", "tb/tb_top.sv"]
+CPU = ["rtl/cpu/rv32i_pkg.sv", "rtl/cpu/alu.sv", "rtl/cpu/branch_unit.sv", "rtl/cpu/decoder.sv",
+       "rtl/cpu/immgen.sv", "rtl/cpu/regfile.sv", "rtl/cpu/csr.sv", "rtl/cpu/core.sv"]
+TB_SOC = CPU + TB_TOP + ["tb/sim_mem.sv", "tb/tb_soc.sv"]
 
 
 def run(toplevel: str, sources: list[str], test_module: str, waves: bool = False,
