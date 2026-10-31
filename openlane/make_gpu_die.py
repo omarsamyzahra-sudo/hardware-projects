@@ -46,7 +46,7 @@ IDX = {n: i for i, (n, _) in enumerate(CLASSES)}
 
 
 def register_class(q: str):
-    q = q.lstrip("\\")
+    q = q.replace("\\", "")                     # DEF escapes brackets: rf\[12\]
     if m := re.match(r"rf\[(\d+)\]", q):
         return IDX[f"lane {int(m.group(1)) // (WARPS * 32)}"]
     if m := re.match(r"lane\[(\d+)\]", q):
@@ -152,8 +152,9 @@ def main():
         if len(pts) < 200:
             continue
         xs, ys = np.median(np.array(pts), 0)
-        labels.append({"t": name, "x": round((xs - x0) / (x1 - x0) * 100, 1),
-                       "y": round((1 - (ys - y0) / (y1 - y0)) * 100, 1), "c": "rgb(%d,%d,%d)" % rgb})
+        clamp = lambda v: round(min(max(v, 8.0), 86.0), 1)          # keep the tag inside the frame
+        labels.append({"t": name, "x": clamp((xs - x0) / (x1 - x0) * 100),
+                       "y": clamp((1 - (ys - y0) / (y1 - y0)) * 100), "c": "rgb(%d,%d,%d)" % rgb})
 
     m = json.loads((RES / "metrics.json").read_text())
     cells = m.get("design__instance__count__stdcell") or m.get("design__instance__count")
@@ -163,13 +164,16 @@ def main():
     fmt = lambda v: "~%d MHz" % round(1000 / (20 - v)) if v is not None else "n/a"
     drc = m.get("magic__drc_error__count", m.get("route__drc_errors"))
     lvs = m.get("design__lvs_error__count")
+    routed = drc is not None or lvs is not None     # final metrics vs. a placed-only snapshot
     specs = [["die", f"{w_um / 1000:.2f} × {h_um / 1000:.2f} mm"],
              ["standard cells", f"{cells:,}" if cells else "n/a"],
-             ["flip-flops", f"{flops:,} (32,768 are registers)"],
-             ["fmax (tt / ss)", f"{fmt(ws)} / {fmt(ws_ss)}"],
-             ["DRC · LVS", f"{drc} · {lvs}"]]
+             ["flip-flops", f"{flops:,} (32,768 are registers)"]]
+    if routed:
+        specs += [["fmax (tt / ss)", f"{fmt(ws)} / {fmt(ws_ss)}"], ["DRC · LVS", f"{drc} · {lvs}"]]
+    else:
+        specs += [["stage", "placed + clock tree, not routed"]]
     summary = {"die_um": [w_um, h_um], "cells": cells, "flops": flops, "ws_tt": ws, "ws_ss": ws_ss,
-               "drc": drc, "lvs": lvs, "power_w": m.get("power__total"), "labels": labels}
+               "drc": drc, "lvs": lvs, "power_w": m.get("power__total"), "routed": routed, "labels": labels}
     (RES / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps({k: v for k, v in summary.items() if k != "labels"}, indent=2))
 
@@ -186,14 +190,16 @@ def main():
          "title": "One SIMT core (an “SM”), flat", "specs": specs,
          "desc": "The whole of simt_core.sv: warp scheduler, fetch and decode, 8 lane ALUs with 32-bit multipliers, "
                  "the register file for 32 threads (built from flip-flops, since the open PDK flow has no SRAM compiler) "
-                 "and the coalescing load/store unit. Instruction and global memory stay off-core, as SRAM macros would be."},
+                 "and the coalescing load/store unit. Instruction and global memory stay off-core, as SRAM macros would be."
+                 + ("" if routed else " Shown placed, with the clock tree and power grid: global routing didn’t converge "
+                    "(the flip-flop register file plus timing-repair buffers left met2 99% used), so there are no signal wires yet.")},
         {"tab": "GPU floorplan", "src": "assets/gpu_floorplan.jpg", "alt": "The SIMT core layout colored by functional unit",
          "title": "Where the placer put each unit", "specs": specs[:3], "labels": labels,
          "desc": "Every flip-flop labeled by the register it holds (from its net name), labels spread through the netlist "
                  "to the logic around them, then painted over the layout. Each lane’s registers and ALU form their own region: "
                  "the 8-way SIMD structure is visible in silicon."},
         {"tab": "GPU 250 µm", "src": "assets/gpu_mid.jpg", "alt": "250 micrometer window of the SIMT core layout",
-         "title": "Zoom: the register-file sea", "specs": [["window", "250 µm"], ["metal", "met1–met5"]],
+         "title": "Zoom: the register-file sea", "specs": [["window", "250 µm"], ["metal", "met1–met5" if routed else "cells + power grid"]],
          "desc": "A 250 µm window in the middle of the core: dense rows of flip-flops and the read multiplexers that pick one "
                  "of 128 registers for each lane, every cycle."},
     ]
