@@ -3,6 +3,7 @@
 #
 #   bash openlane/run.sh decoder     weight_decoder alone: the new block
 #   bash openlane/run.sh engine      ew_top: decoder + GEMV core + AXI streams + control
+#   bash openlane/run.sh engine OpenROAD.STAPostPNR    resumes the last run from that step
 #
 # (from ew-decoder/, inside WSL). Decoder clock target 20 ns like the TPU
 # and GPU runs; fmax comes from the setup slack. The engine targets 30 ns: at
@@ -27,12 +28,19 @@ WORK=~/ew-openlane
 LL=~/librelane
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-rm -rf "$WORK/openlane/$NAME" && mkdir -p "$WORK/openlane/$NAME" "$WORK/rtl"
-cp "$SRC"/rtl/*.sv "$WORK/rtl/"
-cp "$SRC/openlane/$NAME/config.json" "$WORK/openlane/$NAME/"
+FROM="${2:-}"
+
+if [ -z "$FROM" ]; then
+    rm -rf "$WORK/openlane/$NAME" && mkdir -p "$WORK/openlane/$NAME" "$WORK/rtl"
+    cp "$SRC"/rtl/*.sv "$WORK/rtl/"
+    cp "$SRC/openlane/$NAME/config.json" "$WORK/openlane/$NAME/"
+    ARGS="--overwrite"
+else
+    ARGS="--from $FROM"
+fi
 
 cd "$LL"
-nix-shell --run "librelane --run-tag $NAME --overwrite $WORK/openlane/$NAME/config.json"
+nix-shell --run "librelane --run-tag $NAME $ARGS $WORK/openlane/$NAME/config.json"
 
 RUN="$WORK/openlane/$NAME/runs/$NAME"
 OUT="$SRC/openlane/$NAME/results"
