@@ -211,14 +211,22 @@ unconnected FIFO ready pin, `import *` in two files, the unused upper half of
 an x word, and an unused opcode constant. Running the cocotb tests under
 Verilator needs a C++ toolchain set up for it on Windows: home PC.
 
+## 2026-10-30 — 10,000 random seeds **[sim]**
+
+`test_random` with RAND_SEEDS=10000 on the default build (L = 8, 3-bit, per
+matrix): **10,000 seeds, 2,517,936 decoded chunks, all bit-exact, y ==
+golden.py on every job**, 40 min in Icarus. Brief's ≥ 10,000-seed bar met.
+Note: compiled from the RTL just before the Verilator width-cast cleanup;
+those casts don't change behavior and the full regression passed on the
+cleaned RTL.
+
 ## Open — home PC
 
 1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
    and measured on the 3060 Laptop.
 2. Real-weight layer through the RTL: `tb/test_real.py` (results below
    when the run finishes).
-3. 10,000 random seeds (running on the laptop; rerun at home if the reset
-   interrupts it); cocotb under Verilator; coverage report.
+3. ~~10,000 seeds~~ done. cocotb under Verilator; coverage report.
 4. RTX 3080: `gpu/build.bat`, `python gpu/prep.py`, `gpu/build/ewgemv.exe gpu/data`;
    Nsight Compute on `gemv_ew` to see what it's bound by.
 5. Vivado synth/impl/power + Fmax (needs a license tier that covers
