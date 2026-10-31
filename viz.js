@@ -239,7 +239,7 @@ export function Bars({ rows, unit, log = false, note }) {
     ${rows.map((r) => html`<div class="bar-row">
       <span class="bar-label">${r.label}</span>
       <div class="bar-track"><div class=${"bar " + (r.cls || "")} style=${{ width: inView ? `${Math.max(1.2, scale(r.v) * 100)}%` : "0%" }}></div></div>
-      <span class="bar-val mono">${r.v.toLocaleString()}${unit ? " " + unit : ""}${r.tag ? html` <b>${r.tag}</b>` : null}</span>
+      <span class="bar-val mono">${r.show ?? r.v.toLocaleString() + (unit ? " " + unit : "")}${r.tag ? html` <b>${r.tag}</b>` : null}</span>
     </div>`)}
     ${note ? html`<p class="small dim">${note}</p>` : null}
   </div>`;

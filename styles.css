@@ -74,7 +74,9 @@ nav.top.solid { background: rgba(5,7,12,.78); backdrop-filter: blur(14px); borde
 .hero-inner { position: relative; width: 100%; padding-top: 90px; padding-bottom: 80px; }
 .hero h1 { font-size: clamp(3.2rem, 9vw, 7.6rem); line-height: .92; font-weight: 700; letter-spacing: -0.045em; margin-bottom: 26px;
   background: linear-gradient(100deg, #fff 0%, #dfe8f7 45%, var(--cy) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.lede { max-width: 560px; font-size: 1.12rem; color: #c3ccdb; margin-bottom: 30px; }
+.lede { max-width: 560px; font-size: 1.12rem; color: #c3ccdb; margin-bottom: 14px; }
+.lede a { color: var(--cy); }
+.disclose { max-width: 560px; color: var(--dim); margin-bottom: 28px; padding-left: 12px; border-left: 2px solid var(--line2); }
 .hero-cap { position: absolute; right: 28px; bottom: 26px; max-width: 420px; text-align: right; color: var(--faint); margin: 0; }
 .cy { color: var(--cy); } .am { color: var(--am); }
 .scroll-cue { position: absolute; left: 50%; bottom: 22px; width: 24px; height: 38px; border: 1.5px solid var(--line2); border-radius: 12px; transform: translateX(-50%); }
@@ -91,11 +93,11 @@ nav.top.solid { background: rgba(5,7,12,.78); backdrop-filter: blur(14px); borde
 .reveal.in { opacity: 1; transform: none; }
 
 /* stats */
-.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-top: -10px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-top: -10px; }
 .stat { background: var(--bg2); padding: 22px 18px; }
 .stat .num { font: 700 clamp(1.6rem, 2.6vw, 2.2rem)/1 var(--head); margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--cy)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .stat p { color: var(--dim); font-size: .82rem; line-height: 1.45; margin: 0; }
-@media (max-width: 1000px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 
 /* section heads + cards */
@@ -288,3 +290,25 @@ tr.flushed td.st { opacity: .3; }
 .links-row { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 6px; }
 
 .die-fig { margin: 0; } .die-fig img { width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); display: block; } .die-fig figcaption { margin-top: 8px; }
+
+/* evidence tags: measured on hardware, simulated, or estimated by layout tools / models */
+.tag { display: inline-block; font: 600 .62rem/1 var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: .08em;
+  padding: 3px 6px; border-radius: 4px; vertical-align: 1px; white-space: nowrap; border: 1px solid; }
+.tag.measured { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.tag.sim, .tag.formal { color: var(--cy); border-color: color-mix(in srgb, var(--cy) 45%, transparent); }
+.tag.layout, .tag.estimate { color: var(--am); border-color: color-mix(in srgb, var(--am) 45%, transparent); }
+.sub-h { font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 26px 0 4px; }
+.earlier.two { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 560px) { .earlier.two { grid-template-columns: 1fr; } }
+.honest a { color: var(--cy); }
+
+/* layout summary table */
+.lt-wrap { margin: 8px 0 34px; overflow-x: auto; }
+.lt { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 640px; }
+.lt th { text-align: left; font: 500 .7rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
+  padding: 10px 12px; border-bottom: 1px solid var(--line2); }
+.lt td { padding: 12px; border-bottom: 1px solid var(--line); color: #b9c3d3; vertical-align: top; }
+.lt td b { display: block; color: var(--fg); }
+.lt td span.small { display: block; }
+.lt tr.pending td { background: color-mix(in srgb, var(--wip) 5%, transparent); }
+.lt-wrap > p { margin-top: 12px; max-width: 860px; }
