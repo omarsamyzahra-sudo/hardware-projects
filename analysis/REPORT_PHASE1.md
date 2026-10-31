@@ -61,8 +61,9 @@ in a row occur in up/o/q/gate projections. For the hardware (ARCH §1.4):
   L = 8 an all-escape run slows to 8/L of full speed while it lasts.
 - The escape FIFO (64 × 8 B = 512 B) holds more than the worst 256-weight
   burst (210 B), so its depth is fine at the measured burstiness.
-- Real-weight check: layer 21, the burstiest layer, runs through the RTL in
-  `tb/test_real.py`, and the `STALL_ESC` counter is reported in LEDGER.md.
+- Real-weight check: layer 21, the burstiest layer, ran through the RTL
+  (`tb/test_real.py`) bit-exact in both modes; decoded runs within 0.08% of
+  one chunk per cycle, so escape stalls are negligible (LEDGER.md).
 
 ## Gate 1 decisions (also in LEDGER.md)
 

@@ -220,12 +220,35 @@ Note: compiled from the RTL just before the Verilator width-cast cleanup;
 those casts don't change behavior and the full regression passed on the
 cleaned RTL.
 
+## 2026-10-30 — real layer through the RTL **[sim, measured weights]**
+
+`tb/test_real.py`, EW_LAYER=21 (the burstiest layer in Phase 1: up_proj has
+210 escapes in 256 weights), all 7 projections decoded, then all 7 on the
+raw-BF16 bypass, one 64 MB image: **14/14 jobs bit-exact** (decode monitor
+on every chunk, y == golden.py on every row). 40 min in Icarus.
+
+| proj | shape | escapes | decoded cycles | raw cycles | ideal (weights/8) |
+|---|---|---|---|---|---|
+| q | 896×896 | 44,533 | 100,734 | 101,218 | 100,352 |
+| k | 128×896 | 4,491 | 14,718 | 14,723 | 14,336 |
+| v | 128×896 | 4,723 | 14,718 | 14,723 | 14,336 |
+| o | 896×896 | 26,917 | 100,742 | 101,217 | 100,352 |
+| gate | 4864×896 | 112,041 | 545,177 | 548,115 | 544,768 |
+| up | 4864×896 | 105,742 | 545,196 | 548,113 | 544,768 |
+| down | 896×4864 | 109,590 | 546,358 | 546,843 | 544,768 |
+
+Memory model at 16 B/cycle, so this run is compute-bound (raw needs exactly
+16 B/cycle at L = 8); it shows correctness and that escape bursts on real
+weights cost almost nothing: decoded is within 0.08% of the ideal one chunk
+per cycle on gate/up (≤ 409 cycles over 545k), even at 2.6% escapes with
+the worst measured bursts. The STALL_ESC counter wasn't read by this test;
+the bound comes from the cycle counts.
+
 ## Open — home PC
 
 1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
    and measured on the 3060 Laptop.
-2. Real-weight layer through the RTL: `tb/test_real.py` (results below
-   when the run finishes).
+2. ~~Real-weight layer through the RTL~~ done (layer 21, both modes).
 3. ~~10,000 seeds~~ done. cocotb under Verilator; coverage report.
 4. RTX 3080: `gpu/build.bat`, `python gpu/prep.py`, `gpu/build/ewgemv.exe gpu/data`;
    Nsight Compute on `gemv_ew` to see what it's bound by.
