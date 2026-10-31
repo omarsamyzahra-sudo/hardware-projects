@@ -3,7 +3,7 @@
 :root {
   --bg: #05070c; --bg2: #0a0e16; --panel: #0d121c; --panel2: #121927; --line: #1d2636; --line2: #2a3548;
   --fg: #e8edf5; --dim: #8d99ad; --faint: #5b6679;
-  --met1: #3d7fe0; --met2: #9b59d0; --met3: #4fbf6a; --met4: #e8c547; --met5: #e8873a; --wip: #e05d8a;
+  --met1: #3d7fe0; --met2: #9b59d0; --met3: #4fbf6a; --met4: #e8c547; --met5: #e8873a; --li1: #2bb3b3; --wip: #e05d8a;
   --cy: #4fd1e8; --am: #f2a33a; --ok: #5fd38d; --warn: #f2a33a;
   --IF: #1d3a66; --ID: #1f4d33; --EX: #5a4614; --MEM: #4f2448; --WB: #352a5c;
   --r: 14px; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
@@ -286,3 +286,5 @@ tr.flushed td.st { opacity: .3; }
 
 .proj-body > *, .die-stage > *, .research > *, .warp > * { min-width: 0; }
 .links-row { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 6px; }
+
+.die-fig { margin: 0; } .die-fig img { width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); display: block; } .die-fig figcaption { margin-top: 8px; }

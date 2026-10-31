@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import htm from "htm";
 import { PipelineViz, SystolicViz, WarpViz, CoalesceViz, Bars, Roofline, DieExplorer, Count, useInView } from "./viz.js";
 import { GPU_DIE } from "./gpu_die.js";
+import { EW_DIE } from "./ew_die.js";
 const html = htm.bind(React.createElement);
 
 const VIEWER = "https://systolic-array-3d.vercel.app";
@@ -16,6 +17,7 @@ const LAYERS = [
   { id: "silicon", name: "Silicon", layer: "met3", c: "var(--met3)" },
   { id: "gpu", name: "SIMT GPU", layer: "met4", c: "var(--met4)" },
   { id: "cuda", name: "CUDA kernels", layer: "met5", c: "var(--met5)" },
+  { id: "ew", name: "LLM decoder", layer: "li1", c: "var(--li1)" },
   { id: "research", name: "Research", layer: "wip", c: "var(--wip)" },
 ];
 
@@ -46,8 +48,8 @@ function Hero() {
       <p class="over mono">Electrical Engineering + Mathematics · University of North Florida · ’28</p>
       <h1>Rayan<br/>Benaoussar</h1>
       <p class="lede">I build computers from the logic up: a pipelined <b>RISC-V CPU</b>, an <b>int8 systolic-array accelerator</b> taken
-        all the way to a DRC/LVS-clean <b>SkyWater 130 nm layout</b>, a <b>SIMT GPU</b>, and <b>CUDA kernels</b> that beat cuBLAS on
-        LLM-decode shapes. Every claim on this page links back to a test, a tool report or a benchmark log.</p>
+        all the way to a DRC/LVS-clean <b>SkyWater 130 nm layout</b>, a <b>SIMT GPU</b>, <b>CUDA kernels</b> that beat cuBLAS on
+        LLM-decode shapes, and a <b>lossless LLM weight decoder</b> that streams real model weights 1.42× faster, bit for bit. Every claim on this page links back to a test, a tool report or a benchmark log.</p>
       <div class="cta">
         <a class="btn" href="#work">See the work</a>
         <a class="btn-ghost" href=${`mailto:${EMAIL}`}>Get in touch</a>
@@ -65,7 +67,7 @@ function Stats() {
     [html`<${Count} to=${1.69} dec=${2} suffix="×"/>`, "faster than cuBLAS on a 16×11008×4096 LLM-decode GEMM"],
     [html`<${Count} to=${41}/>/41`, "official riscv-tests passing, in lockstep with a golden model"],
     [html`<${Count} to=${102}/> MHz`, "tiled accelerator layout at the typical corner, DRC/LVS clean"],
-    [html`<${Count} to=${30}/>`, "SVA properties proven by k-induction on the CPU pipeline"],
+    [html`<${Count} to=${1.42} dec=${2} suffix="×"/>`, "faster weight streaming on a real LLM layer, lossless (my decoder, RTL sim)"],
     [html`<${Count} to=${8.9} dec=${1} suffix="×"/>`, "my GPU over my CPU on a divergent workload"],
   ];
   return html`<section id="stats" class="stats wrap">${items.map(([v, l]) => html`<div class="stat reveal"><div class="num">${v}</div><p>${l}</p></div>`)}</section>`;
@@ -78,12 +80,13 @@ function Index() {
     { id: "silicon", t: "RTL → GDS", s: "Hardened on SkyWater 130 nm, flat and hierarchical", k: "LibreLane · OpenROAD · KLayout" },
     { id: "gpu", t: "simt-gpu", s: "Warps, divergence, coalescing, built on the CPU's ALU", k: "SystemVerilog · cocotb · ISS" },
     { id: "cuda", t: "int8-gemm-cuda", s: "From naive to tensor cores, plus 4-bit codebook decode", k: "CUDA · dp4a · WMMA · cp.async" },
+    { id: "ew", t: "ew-decoder", s: "Lossless BF16 weight compression, decoded in hardware", k: "RISC-V custom-0 · SKY130 · CUDA" },
     { id: "research", t: "Per-expert safety", s: "What does quantization break inside a mixture-of-experts?", k: "In progress · OLMoE", wip: true },
   ];
   return html`<section id="work" class="wrap">
     <div class="sec-head reveal"><span class="mono over">Selected work · Fall 2026</span><h2>One stack, from the transistor layout to the kernel.</h2>
       <p class="dim">Each project builds on the last: the GPU reuses the CPU's decoder and ALU, the accelerator plugs into the CPU's SoC,
-        and the CUDA kernels use the same weight layout as the accelerator.</p></div>
+        the CUDA kernels use the same weight layout as the accelerator, and the LLM decoder joins the CPU and the GPU kernels.</p></div>
     <div class="cards">${cards.map((c, i) => {
       const L = LAYERS.find((l) => l.id === c.id);
       return html`<a class=${"card reveal" + (c.wip ? " wip" : "")} href=${"#" + c.id} style=${{ "--lc": L.c, transitionDelay: i * 60 + "ms" }}>
@@ -172,7 +175,7 @@ function Toolbox() {
   const groups = [
     ["RTL & verification", "SystemVerilog, cocotb, UVM (Vivado xsim), SVA + SymbiYosys (k-induction), constrained-random + functional coverage, mutation testing, Icarus, Yosys"],
     ["Physical design", "LibreLane / OpenLane 2, OpenROAD, SkyWater SKY130, STA across corners, hierarchical macros, KLayout, Magic, Netgen"],
-    ["GPU & systems", "CUDA (dp4a, WMMA tensor cores, cp.async), cuBLAS, roofline analysis, RISC-V assembly, bare-metal C, AXI4-Lite"],
+    ["GPU & systems", "CUDA (dp4a, WMMA tensor cores, cp.async), cuBLAS, PyTorch, roofline analysis, RISC-V assembly, bare-metal C, AXI4-Lite"],
     ["ML", "TensorFlow / Keras, Optuna, int8 quantization, mixture-of-experts"],
     ["Languages & tools", "Python, C, Java, MATLAB, three.js, React, Git, WSL / Nix"],
     ["Bench", "Circuits I & II, oscilloscopes, multimeters, Arduino, CAD"],
@@ -233,6 +236,7 @@ const DIE_SHOTS = [
     title: "Zoom: standard cells", desc: "60 µm across, in the SkyWater layer colors: rows of standard cells, poly gates, local interconnect and the first metal layers.",
     specs: [["PDK", "SKY130A"], ["library", "sky130_fd_sc_hd"]] },
   ...GPU_DIE,
+  ...EW_DIE,
 ];
 
 function App() {
@@ -275,7 +279,7 @@ function App() {
       <div class="proj-head reveal"><span class="mono over"><i class="sw"></i>met3 · physical design</span>
         <h2>From RTL to a finished layout.</h2>
         <p class="dim">Synthesis, floorplan, placement, clock-tree synthesis, routing, multi-corner timing, DRC and LVS with the open-source
-          LibreLane flow on SkyWater’s 130 nm PDK. The four array tabs are real renders of the TPU’s final GDS. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)
+          LibreLane flow on SkyWater’s 130 nm PDK. The four array tabs and the decoder tabs are real renders of final GDS files. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)
           The GPU core tabs are its real placed layout: its global routing hasn’t converged yet, so it has cells, clock tree and power grid but no signal wires.</p></div>
       <div class="reveal"><${DieExplorer} shots=${DIE_SHOTS}/></div>
       <${Viewer3D}/>
@@ -314,6 +318,27 @@ function App() {
       <${Specs} items=${[
         ["48.7 TOPS", "wmma_big at 4096³: 40% of the tensor-core roof, 59% of cuBLAS"],
         ["roofline", "every kernel placed against measured DRAM, dp4a and tensor-core ceilings"],
+      ]}/>
+    <//>
+
+    <${Project} id="ew" kicker="ew-decoder" title="Smaller LLM weights, decoded in hardware, bit for bit." aside=${html`<figure class="die-fig">
+        <img src="assets/ew_decoder_die.jpg" alt="Layout of the weight decoder on SKY130" loading="lazy"/>
+        <figcaption class="small dim mono">The decoder on SKY130, 329 × 340 µm, DRC/LVS clean</figcaption></figure>`}>
+      <p>Generating one token at batch 1 reads every weight of the model once, so LLM decode is limited by memory, not math.
+        BF16 exponents cluster in a narrow band, so I store each one as a <b>3-bit offset</b> from a per-matrix base, with
+        escapes for the rest: <b>11.23 bits per weight instead of 16, losslessly</b>. A decoder rebuilds 8 BF16 weights per
+        cycle in front of a GEMV core, driven by <b>RISC-V custom-0 instructions</b>.</p>
+      <${Bars} unit="cycles" rows=${[
+        { label: "raw BF16", v: 3736792, cls: "muted" },
+        { label: "compressed + decoder", v: 2622992, cls: "accent", tag: "1.42×" },
+      ]} note="All 7 matrices of a real Qwen2.5-0.5B layer, cycle-accurate RTL simulation with memory limited to 8 B/cycle (half what raw BF16 needs). Ceiling 16 ÷ bits = 1.426×: the decoder reaches 99.9% of it, and every output is bit-exact."/>
+      <${Specs} items=${[
+        ["170/170", "weight matrices of Qwen2.5-0.5B round-trip bit-exact; 1.42× less memory"],
+        ["480/480", "functional-coverage bins over 5 builds (lane counts, code widths, per-tile bases), plus 10,000 random seeds"],
+        ["14,336/14,336", "chunks bit-exact when the routed gate-level netlist decodes real weights"],
+        ["~80 MHz", "decoder on SKY130 at the typical corner, 0.053 mm² of cells, 3.53 mW from real switching (8.8 pJ per weight)"],
+        ["16–26%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
+        ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical. In software the GPU only breaks even on speed (0.98×), which is the case for a hardware decoder"],
       ]}/>
     <//>
 
