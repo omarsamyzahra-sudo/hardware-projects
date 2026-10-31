@@ -334,7 +334,7 @@ function App() {
       ]} note="All 7 matrices of a real Qwen2.5-0.5B layer, cycle-accurate RTL simulation with memory limited to 8 B/cycle (half what raw BF16 needs). Ceiling 16 ÷ bits = 1.426×: the decoder reaches 99.9% of it, and every output is bit-exact."/>
       <${Specs} items=${[
         ["170/170", "weight matrices of Qwen2.5-0.5B round-trip bit-exact; 1.42× less memory"],
-        ["480/480", "functional-coverage bins over 5 builds (lane counts, code widths, per-tile bases), plus 10,000 random seeds"],
+        ["541/541", "functional-coverage bins over 6 builds (lane counts, code widths, per-tile bases), plus 10,000 random seeds"],
         ["14,336/14,336", "chunks bit-exact when the routed gate-level netlist decodes real weights"],
         ["~80 MHz", "decoder on SKY130 at the typical corner, 0.053 mm² of cells, 3.53 mW from real switching (8.8 pJ per weight)"],
         ["16–26%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
