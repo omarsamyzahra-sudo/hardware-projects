@@ -22,6 +22,13 @@
 # after CTS. With 33k endpoints failing, the resizer gained 7 ns in an
 # hour. The clock stays at 20 ns; fmax comes from the slack.
 #
+# The die is sized for 25% utilization (was 45%). At 45% global routing
+# failed after ~8 h with met2 at 99.5% and ~272k overflow: the flop register
+# file's read muxes are wire-hungry, and the slew repair added ~65k buffers
+# on its high-fanout select nets (those stay; they fix real slew violations).
+# GRT_ALLOW_CONGESTION lets detailed routing try to clean up what overflow
+# is left; any that remains shows up as DRC errors in the final metrics.
+#
 #   bash openlane/run.sh OpenROAD.RepairDesignPostGPL   resumes the last run
 #                                                       from that step
 set -euo pipefail
