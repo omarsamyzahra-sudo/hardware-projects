@@ -51,10 +51,12 @@ function Hero() {
         <a class="btn-ghost" href=${`mailto:${EMAIL}`}>Email</a>
       </div>
     </div>
-    <p class="hero-cap mono small">My LLM weight decoder’s SKY130 layout (0.37 mm), every cell and wire where the tools put
-      it, coloured by its job, decoding one 8-weight chunk per beat: <span class="vi">●</span> codes leave the tile registers, <span class="ye">●</span> eight
-      lanes rebuild the exponents, <span class="am">●</span> the chunk lands in the output registers; a <span class="pk">●</span> lane that escapes
-      pulls its byte from the window.</p>
+    <div class="hero-cap small" aria-hidden="true">
+      <b>My LLM weight decoder, laid out on SKY130 (0.37 mm)</b>
+      <div class="legend mono">
+        <span><i class="vi">●</i>codes in</span><span><i class="ye">●</i>decode lanes</span><span><i class="am">●</i>weights out</span><span><i class="pk">●</i>escapes</span>
+      </div>
+    </div>
   </header>`;
 }
 
