@@ -345,3 +345,9 @@ def test_top_bw_limited():
 def test_top_l16():
     _run("top_l16_b3", L_=16, testcase="test_escape_boundaries,test_edge_exponents,test_back_to_back_and_bypass,test_random",
          env={"RAND_SEEDS": "30"})
+
+
+def test_top_l4():
+    """L=4: one 64-bit beat is the whole x word (gemv_core's g_x1 branch)."""
+    _run("top_l4_b3", L_=4, env={"RAND_SEEDS": "30"})
+    _run("top_l4_b3_bw4", L_=4, bw=(4, 1), testcase="test_cycles")    # data stalls

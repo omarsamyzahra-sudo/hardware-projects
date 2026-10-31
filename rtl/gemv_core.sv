@@ -55,6 +55,14 @@ module gemv_core #(
     logic [XAW-1:0]  x_waddr;
     logic [15:0]     x_left;                      // beats still to come
     logic            x_loaded;
+    logic [16*L-1:0] xs_next;                     // xs with this beat shifted in
+
+    // at L = 4 one beat is the whole word, so there is nothing to shift
+    if (L == 4) begin : g_x1
+        assign xs_next = x_data;
+    end else begin : g_xn
+        assign xs_next = {x_data, xs[16*L-1:64]};
+    end
 
     assign x_ready = (x_left != 0);
 
@@ -132,9 +140,9 @@ module gemv_core #(
 
             // x: shift 4 BF16 in per beat; every L/4 beats is one BRAM word
             if (x_valid && x_ready) begin
-                xs <= {x_data, xs[16*L-1:64]};
+                xs <= xs_next;
                 if (xk == LG'(L / 4 - 1)) begin
-                    xmem[x_waddr] <= {x_data, xs[16*L-1:64]};
+                    xmem[x_waddr] <= xs_next;
                     x_waddr       <= x_waddr + 1'b1;
                     xk            <= '0;
                 end else begin

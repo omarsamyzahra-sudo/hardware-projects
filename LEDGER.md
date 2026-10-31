@@ -363,7 +363,70 @@ subset of tests); added the bandwidth-limited cycle test to the first three
 and the edge-exponent test to L = 16. Regression `pytest tb/test_top.py
 tb/test_cpu.py`: 6/6 pass, **480/480 bins hit across all 5 builds** (L8 b3
 89, L8 b2 57, L8 b4 153, L8 b3 per-tile 24, L16 b3 157).
-`tb/coverage_report.txt`.
+`tb/coverage_report.txt`. Later the same day, after the L = 4 fix (sweep
+entry below), an L = 4 build joined the regression (every test, plus the
+bandwidth-limited cycle test for data stalls): 7/7 pass, **541/541 bins
+across 6 builds** (L4 b3 61).
+
+## 2026-10-31 — real layer, memory-bound **[sim, measured weights]**
+
+`tb/test_real.py::test_real_bw8`: layer 21 again, but the memory model gives
+8 B/cycle, half what raw BF16 needs at L = 8, so both paths are bandwidth-bound
+(the case the format is for). All 14 jobs bit-exact. 1 h 13 min in Icarus.
+
+| proj | shape | escapes | decoded cycles | raw cycles | speedup | ceiling 16/bits |
+|---|---|---|---|---|---|---|
+| q | 896×896 | 44,533 | 144,274 | 201,426 | 1.3961× | 1.3981× |
+| k | 128×896 | 4,491 | 20,613 | 29,010 | 1.4074× | 1.4138× |
+| v | 128×896 | 4,723 | 20,642 | 29,010 | 1.4054× | 1.4121× |
+| o | 896×896 | 26,917 | 142,072 | 201,426 | 1.4178× | 1.4199× |
+| gate | 4864×896 | 112,041 | 765,769 | 1,092,242 | 1.4263× | 1.4278× |
+| up | 4864×896 | 105,742 | 764,981 | 1,092,242 | 1.4278× | 1.4293× |
+| down | 896×4864 | 109,590 | 764,641 | 1,091,436 | 1.4274× | 1.4284× |
+| **layer** | | | 2,622,992 | 3,736,792 | **1.4246×** | 1.4261× |
+
+Ceiling = raw bytes / encoded bytes for each matrix (padded, as stored). The
+layer runs at 99.9% of it: on real weights, with the burstiest layer's escape
+runs, the decoder loses 0.1% to its own stalls when memory is the bottleneck.
+
+## 2026-10-31 — design-space sweep, real weights **[sim, measured weights]**
+
+`tb/test_real.py::test_sweep`: one real matrix per run (layer 21 q_proj and
+up_proj, the escape-heaviest layer), memory at L B/cycle (half of what raw
+BF16 needs at every lane count, so every point is bandwidth-bound). Each
+build is its own RTL elaboration (`-P` overrides). All 12 runs bit-exact.
+`sim_build/sweep_*/perf.txt`.
+
+| matrix | L | code bits | base | bits/weight | decoded cycles | raw cycles | speedup | ceiling | of ceiling |
+|---|---|---|---|---|---|---|---|---|---|
+| q_proj | 4 | 3 | matrix | 11.444 | 288,539 | 402,829 | 1.3961× | 1.3981× | 99.86% |
+| q_proj | 8 | 2 | matrix | 13.089 | 164,916 | 201,426 | 1.2214× | 1.2224× | 99.92% |
+| q_proj | 8 | **3** | matrix | 11.444 | 144,274 | 201,426 | 1.3961× | 1.3981× | 99.86% |
+| q_proj | 8 | 3 | tile | 11.395 | 143,656 | 201,426 | **1.4021×** | 1.4042× | 99.85% |
+| q_proj | 8 | 4 | matrix | 12.004 | 151,304 | 201,426 | 1.3313× | 1.3329× | 99.88% |
+| q_proj | 16 | 3 | matrix | 11.444 | 72,198 | 100,819 | 1.3964× | 1.3981× | 99.88% |
+| up_proj | 4 | 3 | matrix | | | | | | (running) |
+| up_proj | 8 | 2 | matrix | 12.315 | 841,315 | 1,092,242 | 1.2983× | 1.2992× | 99.93% |
+| up_proj | 8 | **3** | matrix | 11.194 | 764,981 | 1,092,242 | **1.4278×** | 1.4293× | 99.90% |
+| up_proj | 8 | 3 | tile | 11.303 | 772,373 | 1,092,242 | 1.4141× | 1.4156× | 99.89% |
+| up_proj | 8 | 4 | matrix | 12.002 | 820,007 | 1,092,242 | 1.3320× | 1.3331× | 99.92% |
+| up_proj | 16 | 3 | matrix | 11.194 | 382,552 | 546,226 | 1.4278× | 1.4293× | 99.90% |
+
+Reading:
+- Every point runs within 0.15% of its own ceiling, so the hardware is never
+  the limit: the speedup is set by the format's bits/weight alone, at every
+  lane count (4, 8, 16) and code width.
+- 3-bit codes are the best width, as Phase 1 predicted from entropy: 2-bit
+  (3 codes) escapes 39% of q_proj's weights against 5.5% at 3-bit, and 4-bit spends a bit on
+  every weight to save a few hundred escapes.
+- Per-tile bases help q_proj (+0.4%, its exponents drift across the matrix)
+  and lose on up_proj (−1.0%, the 8-bit base per 64 weights costs more than it
+  saves). Per-matrix stays the default.
+- Escape stalls are rare even here (≤ 1,861 cycles, at 2-bit on q_proj); the
+  data stalls are memory bandwidth, which is the point of the run.
+- L = 4 needed one RTL fix first: `gemv_core` shifted its x register with
+  `xs[16*L-1:64]`, an empty slice when one beat is the whole word. Now a
+  generate branch (`g_x1` / `g_xn`); L = 8 and 16 elaborate the same logic.
 
 ## Open (to do)
 
@@ -372,34 +435,26 @@ layer through the RTL (layer 21, both modes), 10,000 seeds, whole-model GPU
 demo. Dropped: RTX 3080 rerun (2026-10-31, Rayan; the 3060 Laptop is the GPU
 baseline).
 
-Running / queued:
-1. Bandwidth-limited real-layer run (`tb/test_real.py::test_real_bw8`,
-   layer 21 at 8 B/cycle): decoded vs. raw speedup on real weights [sim].
-2. SKY130 layouts (`openlane/run.sh decoder|engine`): Fmax per corner, area,
-   power, DRC/LVS for the decoder alone and the whole engine [estimate].
+Done 2026-10-31 (entries above): bandwidth-bound real layer (1.4246×, 99.9%
+of ceiling); decoder layout, gate-level sim of the routed netlist, power from
+real switching, energy per token; fused kernels in the whole-model demo;
+functional coverage (541/541 with L = 4); design-space sweep in simulation.
 
-To do:
-3. Power from real switching activity: dump a VCD/SAIF from the real-layer
-   run and feed it to the layout's STA power report (brief Phase 6.1), in
-   place of default toggle rates.
-4. Gate-level simulation of the routed decoder netlist with SDF delays:
-   the layout runs bit-exact at the reported clock.
-5. Energy per token: DRAM energy = bytes × pJ/bit (cited value) + logic
-   power; fill the `docs/RESULTS.md` table, with ZipServ's published GPU
-   numbers alongside as a labeled external reference.
-6. Fused kernel in the whole-model GPU demo: `gemv_ew` vs. our raw `gemv_bf16`
-   for batch-1 generation, tokens/s on the 3060, tokens checked identical.
-7. Nsight Compute on `gemv_ew` (3060 Laptop): what bounds it.
-8. cocotb under Verilator; functional coverage report.
-9. Phase 7 sweeps (brief): code width 2/3/4, per-matrix vs. per-tile bases
-   (64/256/1024), lane count L, exponent-byte vs. full-BF16 escapes; each
-   point: bits/weight, cycles at a fixed bandwidth, area/Fmax/power. Plus the
-   stacking-hook design note.
-10. If the engine or GPU layouts are congestion-bound: SKY130 SRAM macros
-    (OpenRAM) for the stream FIFOs / x buffer / register file.
-11. Vivado synth/impl/power + Fmax (needs a license tier that covers
-    2026.1.1, or an older free-tier release). Yosys estimates are in
-    `fpga/yosys/`.
+Running / queued (WSL, one layout at a time):
+1. Engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896).
+2. Decoder layouts for the sweep points (`openlane/sweep.sh`): area, Fmax and
+   power per (L, code bits, base), to go beside the cycle table.
+
+Not doing, and why:
+- cocotb under Verilator: the regression runs on Icarus on Windows; Verilator
+  lint is clean (entry above). Revisit on Linux if sim time matters.
+- SRAM macros (OpenRAM): only needed if a layout is congestion-bound; the
+  decoder routed clean at 40% utilization.
+- Nsight Compute on `gemv_ew`: needs GPU performance counters enabled in the
+  NVIDIA Control Panel (Rayan's call; admin setting).
+- Vivado synth/impl/power: license tier doesn't cover 2026.1.1; Yosys
+  estimates in `fpga/yosys/` and the SKY130 numbers stand in.
+- RTX 3080 rerun: dropped (the 3060 Laptop is the GPU baseline).
 
 Later (FPGA access, not soon): on-board GEMV throughput, achieved DRAM
 bandwidth and board power; the ARCH §2.1 bandwidth table from datasheets.

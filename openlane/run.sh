@@ -4,8 +4,11 @@
 #   bash openlane/run.sh decoder     weight_decoder alone: the new block
 #   bash openlane/run.sh engine      ew_top: decoder + GEMV core + AXI streams + control
 #
-# (from ew-decoder/, inside WSL). Clock target 20 ns like the TPU and GPU
-# runs; fmax comes from the setup slack. Results (metrics, GDS, placed and
+# (from ew-decoder/, inside WSL). Decoder clock target 20 ns like the TPU
+# and GPU runs; fmax comes from the setup slack. The engine targets 30 ns: at
+# 20 ns its FP32 adder tree missed by ~9 ns on 830 endpoints and timing
+# repair churned for an hour without closing, so the target sits just above
+# what it can reach (fmax still comes from the slack). Results (metrics, GDS, placed and
 # routed DEF, STA reports) land in openlane/<name>/results/.
 #
 # The engine is built with KMAX = 896 instead of 4864. The x-vector buffer

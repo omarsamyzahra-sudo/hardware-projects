@@ -17,7 +17,7 @@
     "SYNTH_PARAMETERS": ["KMAX=896"],
     "USE_SLANG": true,
     "CLOCK_PORT": "clk",
-    "CLOCK_PERIOD": 20,
+    "CLOCK_PERIOD": 30,
     "SYNTH_STRATEGY": "DELAY 4",
     "FP_SIZING": "relative",
     "FP_CORE_UTIL": 25,
