@@ -17,6 +17,7 @@
     "FP_SIZING": "relative",
     "FP_CORE_UTIL": 25,
     "GRT_ALLOW_CONGESTION": true,
+    "RUN_ANTENNA_REPAIR": false,
     "STA_CORNERS": ["nom_tt_025C_1v80", "nom_ss_100C_1v60", "nom_ff_n40C_1v95"],
     "STA_MAX_VIOLATOR_COUNT": 100,
     "RUN_POST_CTS_RESIZER_TIMING": false,

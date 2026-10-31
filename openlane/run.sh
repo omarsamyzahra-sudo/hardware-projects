@@ -28,6 +28,11 @@
 # on its high-fanout select nets (those stay; they fix real slew violations).
 # GRT_ALLOW_CONGESTION lets detailed routing try to clean up what overflow
 # is left; any that remains shows up as DRC errors in the final metrics.
+# At 25% global routing converged with zero overflow (met2 58.7%, 56 min),
+# but antenna repair then crashed inside OpenROAD's maze router (GRT-0183,
+# "heap underflow" on one net, after inserting 9,910 diodes). Antenna repair
+# is off (RUN_ANTENNA_REPAIR); remaining antenna violations are reported by
+# the signoff checks instead of fixed.
 #
 #   bash openlane/run.sh OpenROAD.RepairDesignPostGPL   resumes the last run
 #                                                       from that step
