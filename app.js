@@ -4,6 +4,7 @@ import htm from "htm";
 import { PipelineViz, SystolicViz, WarpViz, CoalesceViz, Bars, Roofline, DieExplorer, Count, useInView } from "./viz.js";
 import { GPU_DIE } from "./gpu_die.js";
 import { EW_DIE } from "./ew_die.js";
+import { CPU_DIE } from "./cpu_die.js";
 const html = htm.bind(React.createElement);
 
 const VIEWER = "https://systolic-array-3d.vercel.app";
@@ -235,6 +236,7 @@ const DIE_SHOTS = [
   { tab: "60 µm", src: "assets/tpu_closeup.jpg", alt: "60 micrometer close-up of standard cells in SKY130 layer colors",
     title: "Zoom: standard cells", desc: "60 µm across, in the SkyWater layer colors: rows of standard cells, poly gates, local interconnect and the first metal layers.",
     specs: [["PDK", "SKY130A"], ["library", "sky130_fd_sc_hd"]] },
+  ...CPU_DIE,
   ...GPU_DIE,
   ...EW_DIE,
 ];
@@ -256,6 +258,7 @@ function App() {
         ["126/126", "functional-coverage bins closed by a constrained-random generator, soaked at 5,000 programs"],
         ["33/33", "planted pipeline bugs caught by the regression (mutation testing)"],
         ["CPI 1.13–2.2", "on directed programs; 1.52 on random code"],
+        ["~71 MHz", "laid out on SKY130 at the typical corner: 18,188 cells, 0.156 mm², DRC/LVS clean (die tab below)"],
       ]}/>
       <div class="links-row"><a class="link" href=${GITHUB + "/riscv-core"} target="_blank" rel="noopener">github.com/withered24/riscv-core ↗</a>
         <a class="link" href="notes/cpu-pipeline.html">Notes: the pipeline, cycle by cycle →</a></div>
@@ -279,7 +282,7 @@ function App() {
       <div class="proj-head reveal"><span class="mono over"><i class="sw"></i>met3 · physical design</span>
         <h2>From RTL to a finished layout.</h2>
         <p class="dim">Synthesis, floorplan, placement, clock-tree synthesis, routing, multi-corner timing, DRC and LVS with the open-source
-          LibreLane flow on SkyWater’s 130 nm PDK. The four array tabs and the decoder tabs are real renders of final GDS files. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)
+          LibreLane flow on SkyWater’s 130 nm PDK. The array, CPU and decoder tabs are real renders of final GDS files. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)
           The GPU core tabs are its real placed layout: its global routing hasn’t converged yet, so it has cells, clock tree and power grid but no signal wires.</p></div>
       <div class="reveal"><${DieExplorer} shots=${DIE_SHOTS}/></div>
       <${Viewer3D}/>
@@ -338,7 +341,8 @@ function App() {
         ["14,336/14,336", "chunks bit-exact when the routed gate-level netlist decodes real weights"],
         ["~80 MHz", "decoder on SKY130 at the typical corner, 0.053 mm² of cells, 3.53 mW from real switching (8.8 pJ per weight)"],
         ["16–26%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
-        ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical. In software the GPU only breaks even on speed (0.98×): Nsight shows the decode turns a DRAM-bound kernel (89% of peak) into an ALU-bound one (78%), which is the case for a hardware decoder"],
+        ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical"],
+        ["1.06×", "on the GPU after an Nsight-guided rewrite: decoding turned a DRAM-bound kernel (89% of peak) into an ALU-bound one (78%), so I cut its instructions 26% with byte-permute lookups, from 0.99× to 1.06× of raw BF16 (1.21× on the big MLP matrices). Still far from the 1.42× the hardware decoder reaches, which is the case for doing it in hardware"],
       ]}/>
     <//>
 
