@@ -275,7 +275,8 @@ function App() {
       <div class="proj-head reveal"><span class="mono over"><i class="sw"></i>met3 · physical design</span>
         <h2>From RTL to a finished layout.</h2>
         <p class="dim">Synthesis, floorplan, placement, clock-tree synthesis, routing, multi-corner timing, DRC and LVS with the open-source
-          LibreLane flow on SkyWater’s 130 nm PDK. These are real renders of the final GDS. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)</p></div>
+          LibreLane flow on SkyWater’s 130 nm PDK. The four array tabs are real renders of the TPU’s final GDS. (Open item: 39 slow-corner hold violations on top-level inputs, from the default I/O constraint.)
+          The GPU core tabs are its real placed layout: its global routing hasn’t converged yet, so it has cells, clock tree and power grid but no signal wires.</p></div>
       <div class="reveal"><${DieExplorer} shots=${DIE_SHOTS}/></div>
       <${Viewer3D}/>
     </section>
