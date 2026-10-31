@@ -3,13 +3,16 @@
     python openlane/make_die.py        (after run.sh and render.sh for each block)
 
 Reads openlane/<block>/results/{die,mid,closeup}.png and metrics.json, writes
-JPEG copies to portfolio/assets/ and the tab list to portfolio/ew_die.js.
+JPEG copies to portfolio/assets/ and the tab list to portfolio/ew_die.js. At 2.8 mm the engine's metal is a
+uniform haze in a 2000 px shot, so its image is tinted by block with the hero's map (build_hero_engine.py,
+portfolio/assets/hero_engine.*), over the die render's brightness.
 Every number in a tab comes from that block's metrics.json.
 """
 
 import json
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 HERE = Path(__file__).resolve().parent
@@ -41,8 +44,22 @@ BLOCKS = [
     ("engine", "Decoder engine", "Layout of the whole decoder engine: stream readers, decoder and GEMV core",
      "Whole engine: streams, decoder, GEMV",
      "The full custom-instruction engine: five AXI read streams and a write stream, the decoder, and the GEMV core with "
-     "8 BF16 multipliers and an FP32 adder tree."),
+     "8 BF16 multipliers and an FP32 adder tree. Coloured by block, traced from the routed netlist: stream FIFOs blue, "
+     "AXI readers cyan, decoder yellow, activation buffer green, multipliers orange, adder tree red, accumulator and "
+     "output purple, control grey. The FIFOs and buffer are flip-flops (no SRAM compiler), so storage fills most of the die."),
 ]
+
+
+def tint_by_block(im):
+    """The die render's brightness, coloured by the block that owns each part of the die."""
+    head = json.loads((PORT / "assets" / "hero_engine.json").read_text())
+    g = head["grid"]
+    a = np.frombuffer((PORT / "assets" / "hero_engine.bin").read_bytes()[:g * g * 2], np.uint8).reshape(g, g, 2)
+    cols = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in head["colors"]] + [[40, 46, 58]] * 247, float)
+    blk = Image.fromarray(cols[a[..., 0]][::-1].astype(np.uint8)).resize(im.size, Image.BILINEAR)
+    v = np.asarray(im.convert("L"), float)
+    v = (v - v.min()) / (np.ptp(v) + 1e-9)
+    return Image.fromarray(np.clip(np.asarray(blk, float) * (0.35 + 0.85 * v[..., None]), 0, 255).astype(np.uint8))
 
 
 def main():
@@ -56,6 +73,8 @@ def main():
         m = json.loads((res / "metrics.json").read_text())
         im = Image.open(res / "die.png").convert("RGB")
         im.thumbnail((2000, 2000), Image.LANCZOS)
+        if name == "engine":
+            im = tint_by_block(im)
         im.save(A / f"ew_{name}_die.jpg", quality=86, optimize=True, progressive=True)
         tabs.append({"tab": tab, "src": f"assets/ew_{name}_die.jpg", "alt": alt, "title": title, "desc": desc,
                      "specs": specs(m, json.loads((HERE / name / "config.json").read_text())["CLOCK_PERIOD"])})

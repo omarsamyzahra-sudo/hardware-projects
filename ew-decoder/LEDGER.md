@@ -602,7 +602,14 @@ of ceiling); decoder layout, gate-level sim of the routed netlist, power from
 real switching, energy per token; fused kernels in the whole-model demo;
 functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels and the gemv_ew2 rewrite (1.06×); design-space sweep in simulation; decoder output register (50 MHz at all corners); sweep layouts.
 
-Running (WSL): engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896, 30 ns).
+Engine layout done 2026-10-31 (`openlane/run.sh engine`, ew_top with KMAX = 896,
+30 ns, 25% target utilization; `openlane/engine/results`, GDS not committed at 427 MB):
+328,076 cells (38,119 flops), 2.64 mm² of cells on a 2,780 × 2,790 µm die.
+Magic DRC 0, KLayout DRC 0, LVS 0, routing DRC 0; antenna 7 nets / 9 pins.
+Setup slack tt / ss / ff +12.19 / −2.94 / +14.23 ns (nominal corners; worst
+−3.71 at max_ss), so ~56 / ~30 / ~63 MHz: 30 ns closes at tt and ff only.
+Hold +0.29 / −0.51 / +0.08 ns (slow-corner setup and hold both fail). Open: the
+slow-corner timing and the antenna nets; not called clean anywhere.
 
 Not doing, and why:
 - cocotb under Verilator: the regression runs on Icarus on Windows; Verilator

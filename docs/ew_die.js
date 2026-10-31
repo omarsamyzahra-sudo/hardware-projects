@@ -41,5 +41,30 @@ export const EW_DIE = [
     "10.7 pJ / weight"
    ]
   ]
+ },
+ {
+  "tab": "Decoder engine",
+  "src": "assets/ew_engine_die.jpg",
+  "alt": "Layout of the whole decoder engine: stream readers, decoder and GEMV core",
+  "title": "Whole engine: streams, decoder, GEMV",
+  "desc": "The full custom-instruction engine: five AXI read streams and a write stream, the decoder, and the GEMV core with 8 BF16 multipliers and an FP32 adder tree. Coloured by block, traced from the routed netlist: stream FIFOs blue, AXI readers cyan, decoder yellow, activation buffer green, multipliers orange, adder tree red, accumulator and output purple, control grey. The FIFOs and buffer are flip-flops (no SRAM compiler), so storage fills most of the die.",
+  "specs": [
+   [
+    "die",
+    "2780 × 2790 µm"
+   ],
+   [
+    "cells",
+    "328,076"
+   ],
+   [
+    "fmax (tt / ss)",
+    "~56 / ~30 MHz"
+   ],
+   [
+    "DRC · LVS · antenna",
+    "0 · 0 · 7"
+   ]
+  ]
  }
 ];

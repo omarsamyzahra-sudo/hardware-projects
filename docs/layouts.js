@@ -3,8 +3,8 @@
 export const LAYOUTS = [
   { design: "decoder", block: "Weight decoder", note: " ew-decoder/openlane/decoder", clean: true,
     cells: "7,208", die: "370 × 381 µm", fmax: "~84 / ~53 MHz", checks: "0 / 0 / 0" },
-  { design: "engine", block: "Decoder engine", note: " decoder + GEMV core + AXI streams + control, KMAX = 896, 30 ns target",
-    pending: "routed with 0 routing errors; final DRC/LVS in progress" },
+  { design: "engine", block: "Decoder engine", note: " decoder + GEMV core + AXI streams + control, KMAX = 896; 30 ns met at tt, not at ss",
+    cells: "328,076", die: "2.78 × 2.79 mm", fmax: "~56 / ~30 MHz", checks: "0 / 0 / 7" },
   { design: "cpu", block: "RISC-V CPU", note: " riscv-core/openlane", clean: true,
     cells: "18,188", die: "569 × 580 µm", fmax: "~71 / ~44 MHz", checks: "0 / 0 / 0" },
   { design: "array", block: "Systolic array, tiled", note: " 64 PE macros on a grid", clean: true,

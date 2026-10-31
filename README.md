@@ -23,7 +23,7 @@ SKY130 layouts (LibreLane / OpenROAD; typical / slow corner):
 | RISC-V CPU | 18,188 | ~71 / ~44 MHz | 0 / 0 / 0 |
 | Systolic array, tiled (64 PE macros) | 64 macros + 22,832 | ~102 / ~60 MHz | 0 / 0 / 0 |
 | Systolic array, flat | 108,707 | ~84 / ~43 MHz | 0 / 0 / 1 |
-| Decoder engine (whole) | layout running | | |
+| Decoder engine (whole) | 328,076 | ~56 / ~30 MHz | 0 / 0 / 7 |
 | SIMT GPU core | layout running | | |
 
 ## Shared code

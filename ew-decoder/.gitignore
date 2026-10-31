@@ -11,3 +11,6 @@ analysis/exp_hist.npy
 gpu/build/
 gpu/data/
 sim_build_real.log
+openlane/engine/results/gds/
+openlane/engine/results/max.rpt
+openlane/engine/results/min.rpt

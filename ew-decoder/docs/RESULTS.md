@@ -37,6 +37,19 @@ paper. Model: Qwen2.5-0.5B, BF16, 494M weights.
 The output is registered (one cycle of latency) so that 50 MHz closes at the
 slow corner; the first, unregistered layout ran ~80 / ~49 MHz at 3.53 mW.
 
+## The whole engine on SKY130 (KMAX = 896, 30 ns target)
+
+| | value | tag |
+|---|---|---|
+| clock, typical / slow / fast corner | ~56 / ~30 / ~63 MHz (30 ns met at typical and fast, missed by 2.9 ns at slow) | estimate |
+| hold, typical / slow / fast | +0.29 / −0.51 / +0.08 ns (slow corner fails) | estimate |
+| area | 328,076 cells, 2.64 mm² of cells (die 2,780 × 2,790 µm, 34% utilization) | estimate |
+| DRC · LVS · antenna | 0 · 0 · 7 nets | estimate |
+
+The x buffer and stream FIFOs are flip-flops (no SRAM compiler in this flow),
+about 38k of them, so most of the die is storage. The slow-corner misses and
+the 7 antenna nets are open.
+
 ## Energy per token (weights read once per token at batch 1)
 
 | memory | raw BF16 | exponent window | saving | tag |
