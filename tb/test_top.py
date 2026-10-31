@@ -40,6 +40,13 @@ DUMPFILE = os.environ.get("EW_DUMPFILE", "dump.hex")
 
 
 # ------------------------------------------------------------------ helpers
+def chunks(w):
+    """The decoder's output words for matrix w: L weights per chunk, lane i in
+    bits 16i+15..16i (so little-endian bytes of the flat matrix)."""
+    b = np.ascontiguousarray(w, "<u2").tobytes()
+    return [int.from_bytes(b[i:i + 2 * L], "little") for i in range(0, len(b), 2 * L)]
+
+
 class Engine:
     def __init__(self, dut, dec=None):
         self.dut = dut
@@ -126,12 +133,7 @@ class Engine:
             await self.cmd(F3_WSTREAM_CFG, fid, val)
         await self.cmd(F3_EXP_BASE, job.base)
         await self.cmd(F3_DEC_BYPASS, int(job.bypass))
-        flat = job.w.reshape(-1).astype(np.uint64)
-        for c in range(len(flat) // L):
-            v = 0
-            for i in range(L):
-                v |= int(flat[c * L + i]) << (16 * i)
-            self.expect.append(v)
+        self.expect.extend(chunks(job.w))
         h = await self.cmd(F3_GEMV_RUN, job.rows, job.cols)
         return await self.cmd(F3_GEMV_WAIT, h)
 
@@ -295,14 +297,14 @@ async def test_cycles(dut):
 
 
 # ------------------------------------------------------------------ pytest
-def _run(build, L_=8, code_bits=3, tile_base=0, bw=(16, 1), testcase=None, env=None):
+def _run(build, L_=8, code_bits=3, tile_base=0, bw=(16, 1), testcase=None, env=None, module="test_top"):
     from runner import REPO
     bdir = REPO / "sim_build" / build
     bdir.mkdir(parents=True, exist_ok=True)
     e = {"EW_L": str(L_), "EW_CODE_BITS": str(code_bits), "EW_TILE_BASE": str(tile_base),
          "EW_MEMFILE": str(bdir / "mem.hex"), "EW_DUMPFILE": str(bdir / "dump.hex"),
          "EW_PERF_OUT": str(bdir / "perf.txt"), **(env or {})}
-    run("tb_top", TB_TOP, "test_top", build_name=build,
+    run("tb_top", TB_TOP, module, build_name=build,
         parameters={"L": L_, "CODE_BITS": code_bits, "PER_TILE_BASE": tile_base,
                     "BW_NUM": bw[0], "BW_DEN": bw[1]},
         plusargs=[f"+MEMFILE={e['EW_MEMFILE']}", f"+DUMPFILE={e['EW_DUMPFILE']}"],

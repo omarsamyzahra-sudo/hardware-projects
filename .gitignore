@@ -8,3 +8,6 @@ results.xml
 analysis/weights/
 sw/driver/build/
 analysis/exp_hist.npy
+gpu/build/
+gpu/data/
+sim_build_real.log

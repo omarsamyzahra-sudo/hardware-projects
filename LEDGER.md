@@ -4,7 +4,7 @@ Chronological decisions, assumptions, numbers and dead ends (brief: "record
 every decision, number and assumption"). Every number is tagged:
 **[sim]** cycle-accurate simulation, **[synthetic]** on generated weights,
 **[measured]** on real hardware or real model weights, **[assumption]**.
-Nothing here is [measured] yet; Phase 1 on the real model is the first.
+First [measured] numbers: Phase 1 and the GPU baseline, 2026-10-30 (below).
 
 ---
 
@@ -113,12 +113,77 @@ memory is not the limit, the decoder costs 0.5% (escape window fill at job
 start). Real numbers need real weights (Phase 1) and board bandwidth
 (datasheets).
 
+## 2026-10-30 — Phase 1 on Qwen2.5-0.5B **[measured]**
+
+Full report: `analysis/REPORT_PHASE1.md`. All 170 2-D BF16 matrices,
+494.0M weights (incl. the tied embedding).
+- Exponent entropy 2.616 bits; window k = 7 covers **97.19%**; **11.225
+  bits/weight** (exponent-byte escape). k = 3: 12.232, k = 15: 12.002.
+  Ceiling 16/11.225 = 1.425×.
+- Escape encodings tie exactly (b + 8c + 16(1−c) = b + 8 + 8(1−c)).
+- Per-tile bases: 64 → 11.316, 256 → 11.236, 1024 → 11.219 (−0.006).
+- Lowest coverage 93.18% (layer 16 q_proj); none < 90%.
+- Roundtrip bit-exact on 170/170 matrices.
+- Worst escape burst 16/64/210 in 16/64/256 weights (layer 21 up_proj).
+
+**Gate 1 decisions:** 3-bit code; per-matrix base (per-tile gains 0.006 <
+0.1 threshold, kept as a Phase 7 option); exponent-byte escape (tie → brief's
+rule); no bypass list (every matrix ≥ 93%); escape path unchanged (worst
+256-weight burst 210 B < 512 B FIFO; L = 8 escape port sustains all-escape
+runs). The RTL's defaults already were this configuration.
+
+**Process note:** the download was ~1 GB from Hugging Face; one small file
+(tokenizer) failed on a reset connection, the 988 MB safetensors file was
+complete (`measure.py` parses its header and roundtrips every tensor).
+
+## 2026-10-30 — golden.py vs. PyTorch on real layers **[measured]**
+
+`analysis/golden_vs_torch.py`, layers 12 and 21, all 7 projections, x
+synthetic BF16: max |golden − torch FP32| = **6.2e-6**; vs. torch BF16
+matmul (y rounded to BF16) 3.0e-2. Max ULP vs. FP32 is 49,152, always at
+outputs near zero where cancellation makes one ULP tiny; abs error is the
+meaningful number. (a) storage is lossless; (b) outputs are identical to
+golden.py, which differs from PyTorch only by summation order.
+
+## 2026-10-30 — GPU baseline, RTX 3060 Laptop **[measured]**
+
+The laptop turned out to have an RTX 3060 Laptop GPU (GA106, 192-bit, L2 3
+MB), so the GPU baseline was written and measured here; the home 3080 reruns
+the same binary. `gpu/ewgemv.cu`, data from `gpu/prep.py` (layer 12).
+- bf16 and ew kernels have the same shape and multiply-add order, so y must
+  match bitwise: **it does, all 7 projections, all 3 lane widths**. That's
+  the lossless claim checked on a second, independent decoder.
+- GPU needs a per-row escape index (32 bits/row) the hardware doesn't:
+  11.262 bits/weight on the GPU vs. 11.226 in the hardware format for this
+  layer.
+- Whole layer (14.9M weights, 29.8 MB raw ≫ 3 MB L2), median of 7×100,
+  SM 2002 MHz, mem 7001 MHz, P0:
+
+| kernel | µs/layer | weight GB/s | vs. best raw |
+|---|---|---|---|
+| raw BF16, our kernel (best of G = 8/16/32) | 114.3 | 260.8 | 1.000× |
+| exponent window, our kernel (best, G = 16) | 116.4 | 180.4 | **0.983×** |
+| cuBLAS GemmEx BF16 | 137.9 | 216.3 | 0.829× |
+
+Reading: the decode kernel reads 30% fewer bytes but isn't faster; it runs
+at 180 GB/s, well under the 261 GB/s the raw kernel shows the card can do,
+so it's bound by decode work, not DRAM. That is the brief's premise (GPU
+software decode costs ALU) observed, **with a caveat**: this is a direct
+implementation, not ZipServ's (they report 1.31–1.36× with a tensor-core
+layout). Not tuned further on purpose: the brief says don't tune toward the
+expected answer; Nsight Compute on this kernel is a home-PC item. A first
+run with only G = 8 gave 0.84×, which is why lane width became a parameter
+for both kernels. Laptop clocks vary with power and heat; the 3080 run
+should log `nvidia-smi` clocks the same way (`gpu/results/`).
+
 ## Open — home PC
 
-1. Phase 1 on Qwen2.5-0.5B (`analysis/measure.py`), then the Gate 1
-   decisions above in this file.
-2. Real-weight layer through the engine, both modes (brief §5.4).
-3. 10,000 random seeds; Verilator build; coverage report.
-4. golden.py vs. PyTorch BF16 on real layers (max abs / ULP).
-5. RTX 3080 baseline kernels.
-6. Vivado synth/impl/power, datasheet numbers for ARCH §2.1.
+1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
+   and measured on the 3060 Laptop.
+2. Real-weight layer through the RTL: `tb/test_real.py` (results below
+   when the run finishes).
+3. 10,000 random seeds (running on the laptop; rerun at home if the reset
+   interrupts it); Verilator build; coverage report.
+4. RTX 3080: `gpuuild.bat`, `python gpu/prep.py`, `gpuuild\ewgemv.exe gpu/data`;
+   Nsight Compute on `gemv_ew` to see what it's bound by.
+5. Vivado synth/impl/power, datasheet numbers for ARCH §2.1.

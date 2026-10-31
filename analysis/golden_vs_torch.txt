@@ -1,0 +1,16 @@
+matrix                                      max abs vs fp32  max ULP  max abs vs bf16
+model.layers.12.self_attn.q_proj.weight           5.960e-07      448        5.665e-03
+model.layers.12.self_attn.k_proj.weight           4.768e-07       80        4.034e-03
+model.layers.12.self_attn.v_proj.weight           3.576e-07      320        3.245e-03
+model.layers.12.self_attn.o_proj.weight           5.960e-07     5376        3.798e-03
+model.layers.12.mlp.gate_proj.weight              1.431e-06     3072        7.725e-03
+model.layers.12.mlp.up_proj.weight                2.146e-06    10240        1.455e-02
+model.layers.12.mlp.down_proj.weight              5.007e-06     2112        3.030e-02
+model.layers.21.self_attn.q_proj.weight           9.537e-07    24576        6.359e-03
+model.layers.21.self_attn.k_proj.weight           3.576e-07     2048        2.555e-03
+model.layers.21.self_attn.v_proj.weight           9.537e-07       44        7.661e-03
+model.layers.21.self_attn.o_proj.weight           9.537e-07      576        7.003e-03
+model.layers.21.mlp.gate_proj.weight              4.292e-06    49152        2.420e-02
+model.layers.21.mlp.up_proj.weight                1.192e-06     1664        7.289e-03
+model.layers.21.mlp.down_proj.weight              6.199e-06     2184        1.520e-02
+worst                                             6.199e-06    49152        3.030e-02

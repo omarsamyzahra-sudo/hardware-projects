@@ -24,7 +24,7 @@ from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge
 from ewformat import synthetic_bf16
 from image import Image
 from runner import TB_SOC, run
-from test_top import Engine
+from test_top import Engine, chunks
 
 L = int(os.environ.get("EW_L", "8"))
 PROGRAM = os.environ.get("EW_PROGRAM", "")
@@ -80,9 +80,7 @@ class Soc:
         self.poke(DONE, [0])
         await self.eng.load(img)
         for j in jobs:                       # what the monitor should see, in order
-            flat = j.w.reshape(-1).astype(np.uint64)
-            for c in range(len(flat) // L):
-                self.eng.expect.append(sum(int(flat[c * L + i]) << (16 * i) for i in range(L)))
+            self.eng.expect.extend(chunks(j.w))
 
         for _ in range(5):
             await RisingEdge(d.clk)
