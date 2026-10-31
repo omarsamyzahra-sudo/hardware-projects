@@ -326,7 +326,7 @@ function App() {
 
     <${Project} id="ew" kicker="ew-decoder" title="Smaller LLM weights, decoded in hardware, bit for bit." aside=${html`<figure class="die-fig">
         <img src="assets/ew_decoder_die.jpg" alt="Layout of the weight decoder on SKY130" loading="lazy"/>
-        <figcaption class="small dim mono">The decoder on SKY130, 329 × 340 µm, DRC/LVS clean</figcaption></figure>`}>
+        <figcaption class="small dim mono">The decoder on SKY130, 370 × 381 µm, DRC/LVS clean</figcaption></figure>`}>
       <p>Generating one token at batch 1 reads every weight of the model once, so LLM decode is limited by memory, not math.
         BF16 exponents cluster in a narrow band, so I store each one as a <b>3-bit offset</b> from a per-matrix base, with
         escapes for the rest: <b>11.23 bits per weight instead of 16, losslessly</b>. A decoder rebuilds 8 BF16 weights per
@@ -339,8 +339,8 @@ function App() {
         ["170/170", "weight matrices of Qwen2.5-0.5B round-trip bit-exact; 1.42× less memory"],
         ["541/541", "functional-coverage bins over 6 builds (lane counts, code widths, per-tile bases), plus 10,000 random seeds"],
         ["14,336/14,336", "chunks bit-exact when the routed gate-level netlist decodes real weights"],
-        ["~80 MHz", "decoder on SKY130 at the typical corner, 0.053 mm² of cells, 3.53 mW from real switching (8.8 pJ per weight)"],
-        ["16–26%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
+        ["~84 MHz", "decoder on SKY130 at the typical corner (50 MHz met at all corners), 0.060 mm² of cells, 4.27 mW from real switching (10.7 pJ per weight)"],
+        ["13–25%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
         ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical"],
         ["1.06×", "on the GPU after an Nsight-guided rewrite: decoding turned a DRAM-bound kernel (89% of peak) into an ALU-bound one (78%), so I cut its instructions 26% with byte-permute lookups, from 0.99× to 1.06× of raw BF16 (1.21× on the big MLP matrices). Still far from the 1.42× the hardware decoder reaches, which is the case for doing it in hardware"],
       ]}/>
