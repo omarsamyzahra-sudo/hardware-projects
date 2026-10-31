@@ -11,10 +11,10 @@ Everything else (multipliers, adders, x/y traffic, control) is identical in
 both modes and left out, so this is the weight-path difference, not a
 whole-chip number.
 
-decoder energy: 8.83 pJ/weight [estimate, SKY130 tt]
+decoder energy: 10.68 pJ/weight [estimate, SKY130 tt]
 
 memory                  raw pJ/w   ew pJ/w   saving  raw mJ/tok  ew mJ/tok
-HBM2 (3.97 pJ/bit)         63.52     53.39    15.9%       31.38      26.37
-GDDR5 (14.0 pJ/bit)       224.00    165.98    25.9%      110.65      81.99
+HBM2 (3.97 pJ/bit)         63.52     55.24    13.0%       31.38      27.29
+GDDR5 (14.0 pJ/bit)       224.00    167.83    25.1%      110.65      82.90
 
-Break-even: the decoder pays for itself when DRAM costs more than 1.85 pJ/bit (decoder pJ / bits saved).
+Break-even: the decoder pays for itself when DRAM costs more than 2.24 pJ/bit (decoder pJ / bits saved).

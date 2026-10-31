@@ -3,8 +3,8 @@
 Violator List
 ============================================================================
 Writing metric timing__hold_vio__count__corner:nom_tt_025C_1v80: 0
-Writing metric timing__hold_r2r__ws__corner:nom_tt_025C_1v80: 0.349071
+Writing metric timing__hold_r2r__ws__corner:nom_tt_025C_1v80: 0.313412
 Writing metric timing__hold_r2r_vio__count__corner:nom_tt_025C_1v80: 0
 Writing metric timing__setup_vio__count__corner:nom_tt_025C_1v80: 0
-Writing metric timing__setup_r2r__ws__corner:nom_tt_025C_1v80: 13.461140
+Writing metric timing__setup_r2r__ws__corner:nom_tt_025C_1v80: 12.609101
 Writing metric timing__setup_r2r_vio__count__corner:nom_tt_025C_1v80: 0

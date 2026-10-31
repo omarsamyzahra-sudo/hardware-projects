@@ -36,7 +36,7 @@ BLOCKS = [
      "Exponent-window weight decoder",
      "The decoder alone: double-buffered tiles of 3-bit code planes and sign/mantissa bytes, the escape window that routes "
      "escaped exponents to their lanes with a prefix popcount, and 8 lanes that rebuild one BF16 weight each per cycle. "
-     "Its routed netlist was simulated gate by gate on real Qwen2.5 weights: 14,336/14,336 chunks bit-exact, 3.53 mW at "
+     "Its routed netlist was simulated gate by gate on real Qwen2.5 weights: 14,336/14,336 chunks bit-exact, 4.27 mW at "
      "50 MHz from that run's switching."),
     ("engine", "Decoder engine", "Layout of the whole decoder engine: stream readers, decoder and GEMV core",
      "Whole engine: streams, decoder, GEMV",
@@ -67,7 +67,7 @@ def main():
                          "title": "Zoom: the decoder's cells",
                          "desc": "60 µm at the center of the decoder in SkyWater layer colors: rows of standard "
                                  "cells, poly gates, local interconnect and the first metal layers.",
-                         "specs": [["power @ 50 MHz", "3.53 mW (real weights)"], ["energy", "8.8 pJ / weight"]]})
+                         "specs": [["power @ 50 MHz", "4.27 mW (real weights)"], ["energy", "10.7 pJ / weight"]]})
     (PORT / "ew_die.js").write_text("// written by ew-decoder/openlane/make_die.py\nexport const EW_DIE = "
                                     + json.dumps(tabs, ensure_ascii=False, indent=1) + ";\n", encoding="utf8")
     print("wrote", PORT / "ew_die.js", [t["tab"] for t in tabs])

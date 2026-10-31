@@ -13,7 +13,7 @@ whole-chip number.
 
 Inputs, with their tags:
   bits/weight      11.225               [measured] Phase 1, analysis/results.csv
-  decoder power    3.53 mW @ 50 MHz     [estimate] SKY130 tt, routed netlist, switching
+  decoder power    4.27 mW @ 50 MHz     [estimate] SKY130 tt, routed netlist, switching
                                          from the real-weight gate-level run (gl/power_report.txt)
   decoder rate     0.9997 chunks/cycle  [sim] same run, 8 weights per chunk
   DRAM energy      HBM2 3.97 pJ/bit, GDDR5 14.0 pJ/bit  [cited] O'Connor et al.,
@@ -27,7 +27,7 @@ from pathlib import Path
 
 WEIGHTS_PER_TOKEN = 493_961_216
 BITS_RAW, BITS_EW = 16.0, 11.225
-DEC_POWER_W, F_HZ, LANES, RATE = 3.53e-3, 50e6, 8, 0.9997
+DEC_POWER_W, F_HZ, LANES, RATE = 4.27e-3, 50e6, 8, 0.9997
 DRAM = {"HBM2 (3.97 pJ/bit)": 3.97, "GDDR5 (14.0 pJ/bit)": 14.0}
 
 dec_pj = DEC_POWER_W / (F_HZ * LANES * RATE) * 1e12          # pJ per decoded weight

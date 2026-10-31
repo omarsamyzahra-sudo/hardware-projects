@@ -27,18 +27,22 @@ paper. Model: Qwen2.5-0.5B, BF16, 494M weights.
 
 | | value | tag |
 |---|---|---|
-| clock, typical / slow / fast corner | ~80 / ~49 / ~95 MHz | estimate |
-| area | 6,338 cells, 53,036 µm² (die 329 × 340 µm) | estimate |
+| clock, typical / slow / fast corner | ~84 / ~53 / ~101 MHz (50 MHz met at all three) | estimate |
+| area | 7,208 cells, 59,797 µm² (die 370 × 381 µm) | estimate |
 | DRC · LVS · antenna | 0 · 0 · 0 | estimate |
 | routed netlist on real weights | 14,336/14,336 chunks bit-exact, 0.9997 chunks/cycle | sim |
-| power from that run's switching | 3.53 mW @ 50 MHz, 8.83 pJ per decoded weight | estimate |
+| power from that run's switching | 4.27 mW @ 50 MHz, 10.68 pJ per decoded weight | estimate |
+| sweep layouts (L 4/8/16, 2/3/4-bit, tile bases) | 4,976–10,727 cells; L = 16 and per-tile bases miss 50 MHz at the slow corner; L = 8, 3-bit stays the pick | estimate |
+
+The output is registered (one cycle of latency) so that 50 MHz closes at the
+slow corner; the first, unregistered layout ran ~80 / ~49 MHz at 3.53 mW.
 
 ## Energy per token (weights read once per token at batch 1)
 
 | memory | raw BF16 | exponent window | saving | tag |
 |---|---|---|---|---|
-| HBM2, 3.97 pJ/bit | 31.38 mJ | 26.37 mJ | 15.9% | estimate + cited |
-| GDDR5, 14.0 pJ/bit | 110.65 mJ | 81.99 mJ | 25.9% | estimate + cited |
+| HBM2, 3.97 pJ/bit | 31.38 mJ | 27.29 mJ | 13.0% | estimate + cited |
+| GDDR5, 14.0 pJ/bit | 110.65 mJ | 82.90 mJ | 25.1% | estimate + cited |
 
 DRAM energy: O'Connor et al., "Fine-Grained DRAM", MICRO-50, 2017. The
 decoder's own energy is included (130 nm, so the savings are conservative).

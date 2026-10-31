@@ -323,7 +323,8 @@ et al., "Fine-Grained DRAM", MICRO-50 2017: HBM2 3.97 pJ/bit (§1), GDDR5
 | HBM2 | 63.52 pJ/w, 31.38 mJ/token | 53.39 pJ/w, 26.37 mJ/token | **15.9%** |
 | GDDR5 | 224.00 pJ/w, 110.65 mJ/token | 165.98 pJ/w, 81.99 mJ/token | **25.9%** |
 
-Break-even DRAM cost: 1.85 pJ/bit. The decoder figure is 130 nm; a modern
+Break-even DRAM cost: 1.85 pJ/bit. (Superseded the same day by the registered
+decoder's 4.27 mW: 13.0% / 25.1%, see the output-register entry.) The decoder figure is 130 nm; a modern
 node spends far less per weight, so these savings are conservative.
 
 ## 2026-10-31 — fused kernels in the whole model **[measured]**
@@ -505,7 +506,7 @@ ceiling. The ALU is still the busiest unit (67%), and the small matrices
 work to hide latency in either kernel. The hardware decoder needs none of
 this: it reaches 99.9% of the ceiling.
 
-## 2026-10-31 — decoder output register (slow-corner timing) **[sim; layout pending]**
+## 2026-10-31 — decoder output register (slow-corner timing) **[sim + layout estimate]**
 
 The decoder missed 50 MHz at the slow corner by 0.54 ns. Worst path
 (`openlane/decoder/results`, ss 100 °C 1.60 V): a tile-buffer flop → the
@@ -526,6 +527,69 @@ the one added cycle; compute-bound test unchanged (7,550 / 7,515). The
 real-layer cycle counts above are from the unregistered decoder; each job
 gains one cycle, which is invisible at the reported precision.
 
+Layout (`openlane/run.sh decoder`, same 20 ns clock). At 40% utilization
+global routing failed on congestion (GRT-0116); 35% routed. `openlane/decoder/results`.
+
+| | before (combinational out) | **registered out** |
+|---|---|---|
+| setup slack tt / ss / ff | +7.50 / −0.54 / +9.50 ns | +8.04 / **+1.01** / +10.09 ns |
+| fmax tt / ss / ff | ~80 / ~49 / ~95 MHz | **~84 / ~53 / ~101 MHz** |
+| hold slack tt / ss / ff | | +0.34 / +0.94 / +0.12 ns |
+| standard cells | 6,338 | 7,208 (657 flops) |
+| cell area · die | 53,036 µm² · 329 × 340 µm | 59,797 µm² · 370 × 381 µm (0.141 mm²) |
+| DRC · LVS · antenna | 0 · 0 · 0 | 0 · 0 · 0 |
+
+50 MHz now closes at all three corners. The worst path ends at `smr_ready`
+(the input handshake), not at the output. The slow corner still reports 762
+max-slew violations (the flow's repair leaves them; slack is met with them
+in the timing).
+
+Gate-level, new routed netlist (`gl/`): `tb/test_dec.py` 3/3, real weights
+14,336/14,336 chunks bit-exact in 14,341 cycles (0.9997 chunks/cycle, the
+same as before). Power (`gl/power.tcl`, 17,894 pins annotated, `gl/power_report.txt`):
+
+| activity | sequential | combinational | clock | **total @ 50 MHz** |
+|---|---|---|---|---|
+| default (OpenSTA) | 1.52 mW | 0.93 mW | 1.10 mW | 3.55 mW |
+| **real weights** | 1.50 mW | 1.67 mW | 1.10 mW | **4.27 mW** (was 3.53) |
+
+4.27 mW / (50 MHz × 8 × 0.9997) = **10.68 pJ per decoded weight** (was 8.83).
+The output flops and their clock load are the extra 0.74 mW. Energy per
+token (`analysis/energy.py`, rerun):
+
+| memory | raw BF16 | exponent window | saving |
+|---|---|---|---|
+| HBM2 | 63.52 pJ/w, 31.38 mJ/token | 55.24 pJ/w, 27.29 mJ/token | **13.0%** |
+| GDDR5 | 224.00 pJ/w, 110.65 mJ/token | 167.83 pJ/w, 82.90 mJ/token | **25.1%** |
+
+Break-even DRAM cost: 2.24 pJ/bit. Timing closure cost 3 points of the HBM2
+saving; the registered design is the current one.
+
+## 2026-10-31 — sweep layouts **[estimate: layout tools]**
+
+`openlane/sweep.sh`: the registered decoder at each sweep point, 20 ns clock.
+Utilization 40% except where it congested (L8_b4: 30%; the baseline row is
+the 35% run above), so compare cell area, not die size. Power is the flow's
+default-activity number (not real switching). All DRC · LVS · antenna 0.
+`openlane/sweep/<point>/metrics.json`.
+
+| point | L | code bits | base | cells | cell area | fmax tt / ss | power (default) |
+|---|---|---|---|---|---|---|---|
+| L4_b3 | 4 | 3 | matrix | 4,976 | 43,837 µm² | ~90 / ~58 MHz | 3.24 mW |
+| L8_b2 | 8 | 2 | matrix | 5,897 | 50,701 µm² | ~88 / ~55 MHz | 4.24 mW |
+| **L8_b3** (baseline) | 8 | 3 | matrix | 7,208 | 59,797 µm² | ~84 / ~53 MHz | 4.19 mW |
+| L8_b3_tb | 8 | 3 | tile | 7,486 | 64,262 µm² | ~79 / ~48 MHz | 4.86 mW |
+| L8_b4 | 8 | 4 | matrix | 8,183 | 67,716 µm² | ~82 / ~51 MHz | 4.61 mW |
+| L16_b3 | 16 | 3 | matrix | 10,727 | 92,892 µm² | ~75 / ~46 MHz | 6.24 mW |
+
+Reading: area grows less than linearly with lanes (L = 4 → 16 is 4× the
+lanes for 2.1× the cell area; the tile buffers and control are shared). The
+escape window gets slower with width: L8_b3_tb and L16_b3 miss 50 MHz at the
+slow corner, L8 at 2–4 bits and L4 make it. With the sweep's cycle table, L = 8,
+3-bit, per-matrix base stays the pick: of the points that close 50 MHz at the
+slow corner it has the most lanes per µm² (8 in 59,797 against 4 in 43,837
+for L4), and at L = 8 the 3-bit code has the best speedup.
+
 ## Open (to do)
 
 Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight
@@ -536,18 +600,15 @@ baseline).
 Done 2026-10-31 (entries above): bandwidth-bound real layer (1.4246×, 99.9%
 of ceiling); decoder layout, gate-level sim of the routed netlist, power from
 real switching, energy per token; fused kernels in the whole-model demo;
-functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels and the gemv_ew2 rewrite (1.06×); design-space sweep in simulation.
+functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels and the gemv_ew2 rewrite (1.06×); design-space sweep in simulation; decoder output register (50 MHz at all corners); sweep layouts.
 
-Running / queued (WSL, one layout at a time):
-1. Engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896).
-2. Decoder layouts for the sweep points (`openlane/sweep.sh`): area, Fmax and
-   power per (L, code bits, base), to go beside the cycle table.
+Running (WSL): engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896, 30 ns).
 
 Not doing, and why:
 - cocotb under Verilator: the regression runs on Icarus on Windows; Verilator
   lint is clean (entry above). Revisit on Linux if sim time matters.
 - SRAM macros (OpenRAM): only needed if a layout is congestion-bound; the
-  decoder routed clean at 40% utilization.
+  decoder routes clean at 35% utilization.
 - Vivado synth/impl/power: license tier doesn't cover 2026.1.1; Yosys
   estimates in `fpga/yosys/` and the SKY130 numbers stand in.
 - RTX 3080 rerun: dropped (the 3060 Laptop is the GPU baseline).

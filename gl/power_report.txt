@@ -1,33 +1,25 @@
-OpenSTA 2.7.0 GITDIR-NOT Copyright (c) 2025, Parallax Software, Inc.
-License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>
-This is free software, and you are free to change and redistribute it
-under certain conditions; type `show_copying' for details. 
-This program comes with ABSOLUTELY NO WARRANTY; for details type `show_warranty'.
-Warning: gl/weight_decoder.nl.v line 4809, module sky130_fd_sc_hd__fill_2 not found. Creating black box for FILLER_0_166.
-Warning: gl/weight_decoder.nl.v line 4829, module sky130_fd_sc_hd__fill_1 not found. Creating black box for FILLER_0_27.
-Warning: gl/weight_decoder.nl.v line 19019, module sky130_fd_sc_hd__tapvpwrvgnd_1 not found. Creating black box for TAP_TAPCELL_ROW_0_234.
 === default activity ===
 Group                  Internal  Switching    Leakage      Total
                           Power      Power      Power      Power (Watts)
 ----------------------------------------------------------------
-Sequential             1.13e-03   2.80e-05   4.49e-09   1.15e-03  42.6%
-Combinational          3.68e-04   3.48e-04   1.76e-08   7.16e-04  26.5%
-Clock                  4.03e-04   4.34e-04   3.79e-08   8.36e-04  30.9%
+Sequential             1.45e-03   6.85e-05   5.62e-09   1.52e-03  42.8%
+Combinational          4.72e-04   4.60e-04   1.87e-08   9.33e-04  26.3%
+Clock                  5.54e-04   5.46e-04   5.50e-08   1.10e-03  31.0%
 Macro                  0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
 Pad                    0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
 ----------------------------------------------------------------
-Total                  1.90e-03   8.10e-04   6.00e-08   2.71e-03 100.0%
-                          70.1%      29.9%       0.0%
-Annotated 16314 pin activities.
+Total                  2.48e-03   1.07e-03   7.94e-08   3.55e-03 100.0%
+                          69.7%      30.3%       0.0%
+Annotated 17894 pin activities.
 === activity from the real-weight gate-level run ===
 Group                  Internal  Switching    Leakage      Total
                           Power      Power      Power      Power (Watts)
 ----------------------------------------------------------------
-Sequential             1.09e-03   3.90e-05   4.34e-09   1.12e-03  31.9%
-Combinational          6.60e-04   9.04e-04   1.43e-08   1.56e-03  44.4%
-Clock                  4.03e-04   4.34e-04   3.79e-08   8.36e-04  23.7%
+Sequential             1.42e-03   8.21e-05   5.45e-09   1.50e-03  35.1%
+Combinational          7.59e-04   9.12e-04   1.56e-08   1.67e-03  39.1%
+Clock                  5.54e-04   5.46e-04   5.50e-08   1.10e-03  25.8%
 Macro                  0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
 Pad                    0.00e+00   0.00e+00   0.00e+00   0.00e+00   0.0%
 ----------------------------------------------------------------
-Total                  2.15e-03   1.38e-03   5.66e-08   3.53e-03 100.0%
-                          60.9%      39.1%       0.0%
+Total                  2.73e-03   1.54e-03   7.61e-08   4.27e-03 100.0%
+                          63.9%      36.1%       0.0%

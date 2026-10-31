@@ -11,7 +11,7 @@
     "CLOCK_PERIOD": 20,
     "SYNTH_STRATEGY": "DELAY 4",
     "FP_SIZING": "relative",
-    "FP_CORE_UTIL": 40,
+    "FP_CORE_UTIL": 35,
     "PDK": "sky130A",
     "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
 }
