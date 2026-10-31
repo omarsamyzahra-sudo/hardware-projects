@@ -10,7 +10,8 @@ module tb_top #(
     parameter int BW_NUM        = 16,
     parameter int BW_DEN        = 1,
     parameter int LAT           = 20,
-    parameter int ESC_FIFO      = 64
+    parameter int ESC_FIFO      = 64,
+    parameter int MEM_WORDS     = 1 << 18     // testbench DRAM, 64-bit words (2 MB)
 ) (
     input  logic        clk,
     input  logic        rst_n,
@@ -81,7 +82,7 @@ module tb_top #(
     );
 
     // port order and beat widths: x, tb, esc, smr, code (MSB first)
-    axi_mem #(.NP(NP), .MAXW(MAXW), .AW(AW), .LAT(LAT), .BW_NUM(BW_NUM), .BW_DEN(BW_DEN),
+    axi_mem #(.NP(NP), .MAXW(MAXW), .AW(AW), .WORDS(MEM_WORDS), .LAT(LAT), .BW_NUM(BW_NUM), .BW_DEN(BW_DEN),
               .PBYTES({8'd8, 8'd8, 8'd8, 8'(SDW / 8), 8'd8})) u_mem (
         .clk, .rst_n,
         .araddr, .arlen, .arvalid, .arready, .rdata, .rlast, .rvalid, .rready,

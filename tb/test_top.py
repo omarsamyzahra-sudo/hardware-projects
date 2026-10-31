@@ -297,7 +297,8 @@ async def test_cycles(dut):
 
 
 # ------------------------------------------------------------------ pytest
-def _run(build, L_=8, code_bits=3, tile_base=0, bw=(16, 1), testcase=None, env=None, module="test_top"):
+def _run(build, L_=8, code_bits=3, tile_base=0, bw=(16, 1), testcase=None, env=None, module="test_top",
+         mem_words=1 << 18):
     from runner import REPO
     bdir = REPO / "sim_build" / build
     bdir.mkdir(parents=True, exist_ok=True)
@@ -306,7 +307,7 @@ def _run(build, L_=8, code_bits=3, tile_base=0, bw=(16, 1), testcase=None, env=N
          "EW_PERF_OUT": str(bdir / "perf.txt"), **(env or {})}
     run("tb_top", TB_TOP, module, build_name=build,
         parameters={"L": L_, "CODE_BITS": code_bits, "PER_TILE_BASE": tile_base,
-                    "BW_NUM": bw[0], "BW_DEN": bw[1]},
+                    "BW_NUM": bw[0], "BW_DEN": bw[1], "MEM_WORDS": mem_words},
         plusargs=[f"+MEMFILE={e['EW_MEMFILE']}", f"+DUMPFILE={e['EW_DUMPFILE']}"],
         extra_env=e, testcase=testcase)
 

@@ -184,6 +184,6 @@ should log `nvidia-smi` clocks the same way (`gpu/results/`).
    when the run finishes).
 3. 10,000 random seeds (running on the laptop; rerun at home if the reset
    interrupts it); Verilator build; coverage report.
-4. RTX 3080: `gpuuild.bat`, `python gpu/prep.py`, `gpuuild\ewgemv.exe gpu/data`;
+4. RTX 3080: `gpu/build.bat`, `python gpu/prep.py`, `gpu/build/ewgemv.exe gpu/data`;
    Nsight Compute on `gemv_ew` to see what it's bound by.
 5. Vivado synth/impl/power, datasheet numbers for ARCH §2.1.

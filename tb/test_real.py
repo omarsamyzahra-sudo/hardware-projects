@@ -50,6 +50,7 @@ async def test_real_layer(dut):
         for name, w in mats:
             x = synthetic_bf16(1, w.shape[1], rng, std=1.0)[0]
             jobs.append((name, img.add_job(w, x, bypass=bypass)))
+    assert img.next <= 8 * int(dut.u_mem.WORDS.value), "layer doesn't fit the testbench DRAM"
     eng = Engine(dut)
     await eng.reset()
     await eng.load(img)
@@ -66,4 +67,4 @@ def test_real():
     if not list(WEIGHTS.glob("*.safetensors")):
         pytest.skip("no model in analysis/weights (run analysis/measure.py)")
     from test_top import _run
-    _run("real_l8_b3", module="test_real")
+    _run("real_l8_b3", module="test_real", mem_words=1 << 23)   # 64 MB: a layer twice
