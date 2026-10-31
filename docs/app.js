@@ -295,7 +295,7 @@ function Work({ open, go }) {
   const back = () => { go(null); document.getElementById("work").scrollIntoView({ behavior: "smooth" }); };
   return html`<section id="work" class="wrap work">
     <div class="sec-head"><span class="mono over">Projects · Fall 2026</span>
-      <h2>One stack, from the layout to the kernel.</h2>
+      <h2>What I’ve been building.</h2>
       <p class="dim">Pick a project for the full write-up, interactive diagrams and layout renders. The CPU controls the accelerator and
         the decoder, the GPU reuses the CPU’s decoder and ALU, and the decoder is measured against my own CUDA kernels.</p></div>
     <div class="ptabs" role="tablist" aria-label="Projects">${PROJECTS.map((x) => html`<button role="tab" id=${"tab-" + x.id}
