@@ -1,0 +1,8 @@
+# Resource estimate with Yosys + yosys-slang (Vivado on the dev laptop won't
+# start: its license tier doesn't cover 2026.1.1). From the repo root:
+#   yosys -m slang -s fpga/yosys/synth.ys
+# Defaults: L = 8, 3-bit codes, per-matrix base, KMAX = 4864.
+read_slang -DSYNTHESIS --top ew_top rtl/ew_pkg.sv rtl/bf16_mul.sv rtl/fp32_add.sv rtl/ew_lane.sv rtl/sync_fifo.sv rtl/axi_rd_stream.sv rtl/axi_wr_stream.sv rtl/weight_decoder.sv rtl/gemv_core.sv rtl/ew_ctrl.sv rtl/ew_top.sv
+hierarchy -top ew_top
+synth_xilinx -family xcup -top ew_top
+tee -o fpga/yosys/stat_xcup.txt stat

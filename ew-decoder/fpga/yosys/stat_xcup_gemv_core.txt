@@ -1,0 +1,33 @@
+
+4. Printing statistics.
+
+=== gemv_core ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     5422 wires
+    13923 wire bits
+       70 public wires
+     2036 public wire bits
+       17 ports
+      300 port bits
+     5562 cells
+        1   BUFG
+      340   CARRY4
+        8   DSP48E2
+      637   FDRE
+      135   FDSE
+      231   IBUF
+       54   INV
+      554   LUT2
+     1100   LUT3
+      989   LUT4
+      782   LUT5
+      639   LUT6
+       13   MUXF7
+        1   MUXF8
+       69   OBUF
+        3   RAM32M16
+        4   RAMB36E2
+        2   SRL16E
+

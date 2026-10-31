@@ -1,0 +1,26 @@
+
+4. Printing statistics.
+
+=== weight_decoder ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1073 wires
+     3902 wire bits
+       36 public wires
+     1208 public wire bits
+       23 ports
+      476 port bits
+     2007 cells
+        1   BUFG
+       25   CARRY4
+      524   FDRE
+      337   IBUF
+        2   INV
+       45   LUT2
+      172   LUT3
+      121   LUT4
+      323   LUT5
+      318   LUT6
+      139   OBUF
+

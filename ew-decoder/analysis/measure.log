@@ -1,0 +1,186 @@
+model.embed_tokens.weight                                 151936x896  cov7 0.9734  bits 11.213  burst256  27  roundtrip True
+model.layers.0.mlp.down_proj.weight                         896x4864  cov7 0.9741  bits 11.207  burst256  55  roundtrip True
+model.layers.0.mlp.gate_proj.weight                         4864x896  cov7 0.9685  bits 11.252  burst256  53  roundtrip True
+model.layers.0.mlp.up_proj.weight                           4864x896  cov7 0.9769  bits 11.185  burst256  22  roundtrip True
+model.layers.0.self_attn.k_proj.weight                       128x896  cov7 0.9408  bits 11.473  burst256 123  roundtrip True
+model.layers.0.self_attn.o_proj.weight                       896x896  cov7 0.9608  bits 11.314  burst256  80  roundtrip True
+model.layers.0.self_attn.q_proj.weight                       896x896  cov7 0.9463  bits 11.430  burst256 171  roundtrip True
+model.layers.0.self_attn.v_proj.weight                       128x896  cov7 0.9648  bits 11.282  burst256  27  roundtrip True
+model.layers.1.mlp.down_proj.weight                         896x4864  cov7 0.9752  bits 11.198  burst256  50  roundtrip True
+model.layers.1.mlp.gate_proj.weight                         4864x896  cov7 0.9704  bits 11.237  burst256  90  roundtrip True
+model.layers.1.mlp.up_proj.weight                           4864x896  cov7 0.9761  bits 11.191  burst256  21  roundtrip True
+model.layers.1.self_attn.k_proj.weight                       128x896  cov7 0.9673  bits 11.262  burst256  30  roundtrip True
+model.layers.1.self_attn.o_proj.weight                       896x896  cov7 0.9669  bits 11.265  burst256  46  roundtrip True
+model.layers.1.self_attn.q_proj.weight                       896x896  cov7 0.9646  bits 11.283  burst256  40  roundtrip True
+model.layers.1.self_attn.v_proj.weight                       128x896  cov7 0.9645  bits 11.284  burst256  25  roundtrip True
+model.layers.10.mlp.down_proj.weight                        896x4864  cov7 0.9707  bits 11.234  burst256  98  roundtrip True
+model.layers.10.mlp.gate_proj.weight                        4864x896  cov7 0.9682  bits 11.254  burst256  78  roundtrip True
+model.layers.10.mlp.up_proj.weight                          4864x896  cov7 0.9740  bits 11.208  burst256  37  roundtrip True
+model.layers.10.self_attn.k_proj.weight                      128x896  cov7 0.9594  bits 11.325  burst256  44  roundtrip True
+model.layers.10.self_attn.o_proj.weight                      896x896  cov7 0.9619  bits 11.305  burst256  67  roundtrip True
+model.layers.10.self_attn.q_proj.weight                      896x896  cov7 0.9631  bits 11.295  burst256  57  roundtrip True
+model.layers.10.self_attn.v_proj.weight                      128x896  cov7 0.9680  bits 11.256  burst256  19  roundtrip True
+model.layers.11.mlp.down_proj.weight                        896x4864  cov7 0.9704  bits 11.237  burst256  93  roundtrip True
+model.layers.11.mlp.gate_proj.weight                        4864x896  cov7 0.9711  bits 11.231  burst256  65  roundtrip True
+model.layers.11.mlp.up_proj.weight                          4864x896  cov7 0.9737  bits 11.211  burst256  37  roundtrip True
+model.layers.11.self_attn.k_proj.weight                      128x896  cov7 0.9397  bits 11.482  burst256  46  roundtrip True
+model.layers.11.self_attn.o_proj.weight                      896x896  cov7 0.9578  bits 11.338  burst256 126  roundtrip True
+model.layers.11.self_attn.q_proj.weight                      896x896  cov7 0.9451  bits 11.440  burst256  76  roundtrip True
+model.layers.11.self_attn.v_proj.weight                      128x896  cov7 0.9638  bits 11.290  burst256  22  roundtrip True
+model.layers.12.mlp.down_proj.weight                        896x4864  cov7 0.9713  bits 11.230  burst256  84  roundtrip True
+model.layers.12.mlp.gate_proj.weight                        4864x896  cov7 0.9696  bits 11.243  burst256 114  roundtrip True
+model.layers.12.mlp.up_proj.weight                          4864x896  cov7 0.9740  bits 11.208  burst256  35  roundtrip True
+model.layers.12.self_attn.k_proj.weight                      128x896  cov7 0.9603  bits 11.318  burst256  39  roundtrip True
+model.layers.12.self_attn.o_proj.weight                      896x896  cov7 0.9644  bits 11.285  burst256  90  roundtrip True
+model.layers.12.self_attn.q_proj.weight                      896x896  cov7 0.9625  bits 11.300  burst256  73  roundtrip True
+model.layers.12.self_attn.v_proj.weight                      128x896  cov7 0.9726  bits 11.220  burst256  20  roundtrip True
+model.layers.13.mlp.down_proj.weight                        896x4864  cov7 0.9708  bits 11.233  burst256  81  roundtrip True
+model.layers.13.mlp.gate_proj.weight                        4864x896  cov7 0.9697  bits 11.243  burst256  97  roundtrip True
+model.layers.13.mlp.up_proj.weight                          4864x896  cov7 0.9729  bits 11.216  burst256  43  roundtrip True
+model.layers.13.self_attn.k_proj.weight                      128x896  cov7 0.9521  bits 11.383  burst256  47  roundtrip True
+model.layers.13.self_attn.o_proj.weight                      896x896  cov7 0.9644  bits 11.285  burst256  57  roundtrip True
+model.layers.13.self_attn.q_proj.weight                      896x896  cov7 0.9526  bits 11.380  burst256  64  roundtrip True
+model.layers.13.self_attn.v_proj.weight                      128x896  cov7 0.9678  bits 11.258  burst256  18  roundtrip True
+model.layers.14.mlp.down_proj.weight                        896x4864  cov7 0.9713  bits 11.230  burst256  52  roundtrip True
+model.layers.14.mlp.gate_proj.weight                        4864x896  cov7 0.9694  bits 11.245  burst256  72  roundtrip True
+model.layers.14.mlp.up_proj.weight                          4864x896  cov7 0.9736  bits 11.211  burst256  36  roundtrip True
+model.layers.14.self_attn.k_proj.weight                      128x896  cov7 0.9638  bits 11.290  burst256  31  roundtrip True
+model.layers.14.self_attn.o_proj.weight                      896x896  cov7 0.9646  bits 11.283  burst256  93  roundtrip True
+model.layers.14.self_attn.q_proj.weight                      896x896  cov7 0.9610  bits 11.312  burst256  91  roundtrip True
+model.layers.14.self_attn.v_proj.weight                      128x896  cov7 0.9628  bits 11.297  burst256  26  roundtrip True
+model.layers.15.mlp.down_proj.weight                        896x4864  cov7 0.9699  bits 11.241  burst256  44  roundtrip True
+model.layers.15.mlp.gate_proj.weight                        4864x896  cov7 0.9696  bits 11.243  burst256  65  roundtrip True
+model.layers.15.mlp.up_proj.weight                          4864x896  cov7 0.9727  bits 11.219  burst256  47  roundtrip True
+model.layers.15.self_attn.k_proj.weight                      128x896  cov7 0.9576  bits 11.339  burst256  51  roundtrip True
+model.layers.15.self_attn.o_proj.weight                      896x896  cov7 0.9612  bits 11.310  burst256  81  roundtrip True
+model.layers.15.self_attn.q_proj.weight                      896x896  cov7 0.9631  bits 11.296  burst256  56  roundtrip True
+model.layers.15.self_attn.v_proj.weight                      128x896  cov7 0.9711  bits 11.231  burst256  18  roundtrip True
+model.layers.16.mlp.down_proj.weight                        896x4864  cov7 0.9733  bits 11.213  burst256  52  roundtrip True
+model.layers.16.mlp.gate_proj.weight                        4864x896  cov7 0.9677  bits 11.258  burst256  53  roundtrip True
+model.layers.16.mlp.up_proj.weight                          4864x896  cov7 0.9736  bits 11.211  burst256  32  roundtrip True
+model.layers.16.self_attn.k_proj.weight                      128x896  cov7 0.9544  bits 11.365  burst256  49  roundtrip True
+model.layers.16.self_attn.o_proj.weight                      896x896  cov7 0.9607  bits 11.315  burst256 129  roundtrip True
+model.layers.16.self_attn.q_proj.weight                      896x896  cov7 0.9318  bits 11.545  burst256  76  roundtrip True
+model.layers.16.self_attn.v_proj.weight                      128x896  cov7 0.9383  bits 11.494  burst256  37  roundtrip True
+model.layers.17.mlp.down_proj.weight                        896x4864  cov7 0.9748  bits 11.201  burst256  63  roundtrip True
+model.layers.17.mlp.gate_proj.weight                        4864x896  cov7 0.9688  bits 11.250  burst256  57  roundtrip True
+model.layers.17.mlp.up_proj.weight                          4864x896  cov7 0.9758  bits 11.194  burst256  23  roundtrip True
+model.layers.17.self_attn.k_proj.weight                      128x896  cov7 0.9626  bits 11.299  burst256  39  roundtrip True
+model.layers.17.self_attn.o_proj.weight                      896x896  cov7 0.9703  bits 11.238  burst256 100  roundtrip True
+model.layers.17.self_attn.q_proj.weight                      896x896  cov7 0.9602  bits 11.319  burst256  70  roundtrip True
+model.layers.17.self_attn.v_proj.weight                      128x896  cov7 0.9679  bits 11.257  burst256  20  roundtrip True
+model.layers.18.mlp.down_proj.weight                        896x4864  cov7 0.9751  bits 11.199  burst256  42  roundtrip True
+model.layers.18.mlp.gate_proj.weight                        4864x896  cov7 0.9727  bits 11.218  burst256  46  roundtrip True
+model.layers.18.mlp.up_proj.weight                          4864x896  cov7 0.9767  bits 11.187  burst256  26  roundtrip True
+model.layers.18.self_attn.k_proj.weight                      128x896  cov7 0.9648  bits 11.281  burst256  26  roundtrip True
+model.layers.18.self_attn.o_proj.weight                      896x896  cov7 0.9703  bits 11.237  burst256  34  roundtrip True
+model.layers.18.self_attn.q_proj.weight                      896x896  cov7 0.9632  bits 11.294  burst256  53  roundtrip True
+model.layers.18.self_attn.v_proj.weight                      128x896  cov7 0.9615  bits 11.308  burst256  26  roundtrip True
+model.layers.19.mlp.down_proj.weight                        896x4864  cov7 0.9733  bits 11.213  burst256  31  roundtrip True
+model.layers.19.mlp.gate_proj.weight                        4864x896  cov7 0.9705  bits 11.236  burst256  57  roundtrip True
+model.layers.19.mlp.up_proj.weight                          4864x896  cov7 0.9749  bits 11.200  burst256  53  roundtrip True
+model.layers.19.self_attn.k_proj.weight                      128x896  cov7 0.9685  bits 11.252  burst256  25  roundtrip True
+model.layers.19.self_attn.o_proj.weight                      896x896  cov7 0.9681  bits 11.255  burst256  66  roundtrip True
+model.layers.19.self_attn.q_proj.weight                      896x896  cov7 0.9604  bits 11.316  burst256  66  roundtrip True
+model.layers.19.self_attn.v_proj.weight                      128x896  cov7 0.9693  bits 11.246  burst256  20  roundtrip True
+model.layers.2.mlp.down_proj.weight                         896x4864  cov7 0.9747  bits 11.202  burst256  30  roundtrip True
+model.layers.2.mlp.gate_proj.weight                         4864x896  cov7 0.9705  bits 11.236  burst256 112  roundtrip True
+model.layers.2.mlp.up_proj.weight                           4864x896  cov7 0.9757  bits 11.194  burst256 191  roundtrip True
+model.layers.2.self_attn.k_proj.weight                       128x896  cov7 0.9687  bits 11.250  burst256  25  roundtrip True
+model.layers.2.self_attn.o_proj.weight                       896x896  cov7 0.9651  bits 11.279  burst256 119  roundtrip True
+model.layers.2.self_attn.q_proj.weight                       896x896  cov7 0.9549  bits 11.361  burst256  66  roundtrip True
+model.layers.2.self_attn.v_proj.weight                       128x896  cov7 0.9624  bits 11.301  burst256  23  roundtrip True
+model.layers.20.mlp.down_proj.weight                        896x4864  cov7 0.9731  bits 11.215  burst256  30  roundtrip True
+model.layers.20.mlp.gate_proj.weight                        4864x896  cov7 0.9711  bits 11.231  burst256  49  roundtrip True
+model.layers.20.mlp.up_proj.weight                          4864x896  cov7 0.9744  bits 11.205  burst256  26  roundtrip True
+model.layers.20.self_attn.k_proj.weight                      128x896  cov7 0.9617  bits 11.307  burst256  32  roundtrip True
+model.layers.20.self_attn.o_proj.weight                      896x896  cov7 0.9655  bits 11.276  burst256  71  roundtrip True
+model.layers.20.self_attn.q_proj.weight                      896x896  cov7 0.9531  bits 11.376  burst256  53  roundtrip True
+model.layers.20.self_attn.v_proj.weight                      128x896  cov7 0.9490  bits 11.408  burst256  28  roundtrip True
+model.layers.21.mlp.down_proj.weight                        896x4864  cov7 0.9749  bits 11.201  burst256  30  roundtrip True
+model.layers.21.mlp.gate_proj.weight                        4864x896  cov7 0.9743  bits 11.206  burst256 175  roundtrip True
+model.layers.21.mlp.up_proj.weight                          4864x896  cov7 0.9757  bits 11.194  burst256 210  roundtrip True
+model.layers.21.self_attn.k_proj.weight                      128x896  cov7 0.9608  bits 11.313  burst256  29  roundtrip True
+model.layers.21.self_attn.o_proj.weight                      896x896  cov7 0.9665  bits 11.268  burst256  77  roundtrip True
+model.layers.21.self_attn.q_proj.weight                      896x896  cov7 0.9445  bits 11.444  burst256  83  roundtrip True
+model.layers.21.self_attn.v_proj.weight                      128x896  cov7 0.9588  bits 11.329  burst256  24  roundtrip True
+model.layers.22.mlp.down_proj.weight                        896x4864  cov7 0.9761  bits 11.191  burst256  31  roundtrip True
+model.layers.22.mlp.gate_proj.weight                        4864x896  cov7 0.9750  bits 11.200  burst256  50  roundtrip True
+model.layers.22.mlp.up_proj.weight                          4864x896  cov7 0.9759  bits 11.193  burst256  27  roundtrip True
+model.layers.22.self_attn.k_proj.weight                      128x896  cov7 0.9620  bits 11.304  burst256  33  roundtrip True
+model.layers.22.self_attn.o_proj.weight                      896x896  cov7 0.9723  bits 11.222  burst256 100  roundtrip True
+model.layers.22.self_attn.q_proj.weight                      896x896  cov7 0.9503  bits 11.398  burst256  76  roundtrip True
+model.layers.22.self_attn.v_proj.weight                      128x896  cov7 0.9576  bits 11.339  burst256  27  roundtrip True
+model.layers.23.mlp.down_proj.weight                        896x4864  cov7 0.9741  bits 11.207  burst256  43  roundtrip True
+model.layers.23.mlp.gate_proj.weight                        4864x896  cov7 0.9745  bits 11.204  burst256  51  roundtrip True
+model.layers.23.mlp.up_proj.weight                          4864x896  cov7 0.9761  bits 11.191  burst256  57  roundtrip True
+model.layers.23.self_attn.k_proj.weight                      128x896  cov7 0.9580  bits 11.336  burst256  36  roundtrip True
+model.layers.23.self_attn.o_proj.weight                      896x896  cov7 0.9638  bits 11.289  burst256 143  roundtrip True
+model.layers.23.self_attn.q_proj.weight                      896x896  cov7 0.9443  bits 11.445  burst256  90  roundtrip True
+model.layers.23.self_attn.v_proj.weight                      128x896  cov7 0.9624  bits 11.301  burst256  23  roundtrip True
+model.layers.3.mlp.down_proj.weight                         896x4864  cov7 0.9747  bits 11.203  burst256  50  roundtrip True
+model.layers.3.mlp.gate_proj.weight                         4864x896  cov7 0.9727  bits 11.219  burst256  57  roundtrip True
+model.layers.3.mlp.up_proj.weight                           4864x896  cov7 0.9756  bits 11.195  burst256  62  roundtrip True
+model.layers.3.self_attn.k_proj.weight                       128x896  cov7 0.9609  bits 11.312  burst256  32  roundtrip True
+model.layers.3.self_attn.o_proj.weight                       896x896  cov7 0.9657  bits 11.274  burst256  84  roundtrip True
+model.layers.3.self_attn.q_proj.weight                       896x896  cov7 0.9488  bits 11.409  burst256  69  roundtrip True
+model.layers.3.self_attn.v_proj.weight                       128x896  cov7 0.9680  bits 11.256  burst256  19  roundtrip True
+model.layers.4.mlp.down_proj.weight                         896x4864  cov7 0.9734  bits 11.212  burst256  83  roundtrip True
+model.layers.4.mlp.gate_proj.weight                         4864x896  cov7 0.9695  bits 11.244  burst256  76  roundtrip True
+model.layers.4.mlp.up_proj.weight                           4864x896  cov7 0.9754  bits 11.197  burst256  36  roundtrip True
+model.layers.4.self_attn.k_proj.weight                       128x896  cov7 0.9632  bits 11.294  burst256  34  roundtrip True
+model.layers.4.self_attn.o_proj.weight                       896x896  cov7 0.9666  bits 11.268  burst256  62  roundtrip True
+model.layers.4.self_attn.q_proj.weight                       896x896  cov7 0.9601  bits 11.319  burst256  77  roundtrip True
+model.layers.4.self_attn.v_proj.weight                       128x896  cov7 0.9722  bits 11.223  burst256  17  roundtrip True
+model.layers.5.mlp.down_proj.weight                         896x4864  cov7 0.9732  bits 11.214  burst256  67  roundtrip True
+model.layers.5.mlp.gate_proj.weight                         4864x896  cov7 0.9650  bits 11.280  burst256  56  roundtrip True
+model.layers.5.mlp.up_proj.weight                           4864x896  cov7 0.9753  bits 11.197  burst256  23  roundtrip True
+model.layers.5.self_attn.k_proj.weight                       128x896  cov7 0.9598  bits 11.321  burst256  37  roundtrip True
+model.layers.5.self_attn.o_proj.weight                       896x896  cov7 0.9692  bits 11.247  burst256  94  roundtrip True
+model.layers.5.self_attn.q_proj.weight                       896x896  cov7 0.9608  bits 11.314  burst256  76  roundtrip True
+model.layers.5.self_attn.v_proj.weight                       128x896  cov7 0.9719  bits 11.225  burst256  18  roundtrip True
+model.layers.6.mlp.down_proj.weight                         896x4864  cov7 0.9743  bits 11.206  burst256  45  roundtrip True
+model.layers.6.mlp.gate_proj.weight                         4864x896  cov7 0.9726  bits 11.220  burst256  53  roundtrip True
+model.layers.6.mlp.up_proj.weight                           4864x896  cov7 0.9758  bits 11.194  burst256  31  roundtrip True
+model.layers.6.self_attn.k_proj.weight                       128x896  cov7 0.9629  bits 11.297  burst256  37  roundtrip True
+model.layers.6.self_attn.o_proj.weight                       896x896  cov7 0.9659  bits 11.273  burst256 121  roundtrip True
+model.layers.6.self_attn.q_proj.weight                       896x896  cov7 0.9553  bits 11.357  burst256  86  roundtrip True
+model.layers.6.self_attn.v_proj.weight                       128x896  cov7 0.9715  bits 11.228  burst256  18  roundtrip True
+model.layers.7.mlp.down_proj.weight                         896x4864  cov7 0.9727  bits 11.219  burst256  56  roundtrip True
+model.layers.7.mlp.gate_proj.weight                         4864x896  cov7 0.9721  bits 11.223  burst256  62  roundtrip True
+model.layers.7.mlp.up_proj.weight                           4864x896  cov7 0.9748  bits 11.201  burst256  38  roundtrip True
+model.layers.7.self_attn.k_proj.weight                       128x896  cov7 0.9618  bits 11.306  burst256  43  roundtrip True
+model.layers.7.self_attn.o_proj.weight                       896x896  cov7 0.9679  bits 11.257  burst256  68  roundtrip True
+model.layers.7.self_attn.q_proj.weight                       896x896  cov7 0.9609  bits 11.313  burst256  51  roundtrip True
+model.layers.7.self_attn.v_proj.weight                       128x896  cov7 0.9721  bits 11.224  burst256  18  roundtrip True
+model.layers.8.mlp.down_proj.weight                         896x4864  cov7 0.9716  bits 11.227  burst256  69  roundtrip True
+model.layers.8.mlp.gate_proj.weight                         4864x896  cov7 0.9686  bits 11.251  burst256  73  roundtrip True
+model.layers.8.mlp.up_proj.weight                           4864x896  cov7 0.9740  bits 11.208  burst256  37  roundtrip True
+model.layers.8.self_attn.k_proj.weight                       128x896  cov7 0.9667  bits 11.266  burst256  34  roundtrip True
+model.layers.8.self_attn.o_proj.weight                       896x896  cov7 0.9636  bits 11.291  burst256  81  roundtrip True
+model.layers.8.self_attn.q_proj.weight                       896x896  cov7 0.9592  bits 11.327  burst256  43  roundtrip True
+model.layers.8.self_attn.v_proj.weight                       128x896  cov7 0.9690  bits 11.248  burst256  24  roundtrip True
+model.layers.9.mlp.down_proj.weight                         896x4864  cov7 0.9709  bits 11.233  burst256  89  roundtrip True
+model.layers.9.mlp.gate_proj.weight                         4864x896  cov7 0.9715  bits 11.228  burst256  75  roundtrip True
+model.layers.9.mlp.up_proj.weight                           4864x896  cov7 0.9742  bits 11.207  burst256  37  roundtrip True
+model.layers.9.self_attn.k_proj.weight                       128x896  cov7 0.9485  bits 11.412  burst256  43  roundtrip True
+model.layers.9.self_attn.o_proj.weight                       896x896  cov7 0.9642  bits 11.287  burst256  39  roundtrip True
+model.layers.9.self_attn.q_proj.weight                       896x896  cov7 0.9472  bits 11.423  burst256  82  roundtrip True
+model.layers.9.self_attn.v_proj.weight                       128x896  cov7 0.9623  bits 11.302  burst256  25  roundtrip True
+
+model-wide, weighted by weights:
+  exp_entropy        2.6156
+  full16_entropy     10.5267
+  cov_k3             0.7211
+  cov_k7             0.9719
+  cov_k15            0.9997
+  bits_k3            12.2316
+  bits_k7            11.2250
+  bits_k15           12.0021
+  bits_zs_k7         11.2250
+  tile64_bits_k7     11.3156
+  tile256_bits_k7    11.2362
+  tile1024_bits_k7   11.2192
+  matrices with cov_k7 < 90%: none
+  worst escape burst in 16/64/256: 16 / 64 / 210
+  roundtrip failures: none

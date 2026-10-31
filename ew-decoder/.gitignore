@@ -1,0 +1,13 @@
+sim_build/
+__pycache__/
+*.pyc
+*.vcd
+*.fst
+results.xml
+.pytest_cache/
+analysis/weights/
+sw/driver/build/
+analysis/exp_hist.npy
+gpu/build/
+gpu/data/
+sim_build_real.log

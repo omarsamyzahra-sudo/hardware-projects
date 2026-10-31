@@ -1,0 +1,29 @@
+
+4. Printing statistics.
+
+=== ew_ctrl ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1052 wires
+     2774 wire bits
+       52 public wires
+     1027 public wire bits
+       35 ports
+      542 port bits
+     1533 cells
+        1   BUFG
+       65   CARRY4
+        2   DSP48E2
+      461   FDRE
+       78   IBUF
+       13   INV
+        3   LUT1
+       24   LUT2
+       45   LUT3
+       83   LUT4
+      126   LUT5
+      165   LUT6
+        3   MUXF7
+      464   OBUF
+

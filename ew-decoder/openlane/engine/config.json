@@ -1,0 +1,28 @@
+{
+    "DESIGN_NAME": "ew_top",
+    "VERILOG_FILES": [
+        "dir::../../rtl/ew_pkg.sv",
+        "dir::../../rtl/bf16_mul.sv",
+        "dir::../../rtl/fp32_add.sv",
+        "dir::../../rtl/ew_lane.sv",
+        "dir::../../rtl/sync_fifo.sv",
+        "dir::../../rtl/axi_rd_stream.sv",
+        "dir::../../rtl/axi_wr_stream.sv",
+        "dir::../../rtl/weight_decoder.sv",
+        "dir::../../rtl/gemv_core.sv",
+        "dir::../../rtl/ew_ctrl.sv",
+        "dir::../../rtl/ew_top.sv"
+    ],
+    "VERILOG_DEFINES": ["SYNTHESIS"],
+    "SYNTH_PARAMETERS": ["KMAX=896"],
+    "USE_SLANG": true,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 30,
+    "SYNTH_STRATEGY": "DELAY 4",
+    "FP_SIZING": "relative",
+    "FP_CORE_UTIL": 25,
+    "GRT_ALLOW_CONGESTION": true,
+    "STA_MAX_VIOLATOR_COUNT": 100,
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
+}
