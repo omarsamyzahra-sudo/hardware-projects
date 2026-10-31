@@ -102,7 +102,7 @@ class Engine:
             self.cov.cycle_sample(int(dec.stall_esc.value), int(dec.stall_data.value))
             if int(dec.out_valid.value) and int(dec.out_ready.value):
                 got = int(dec.out_w.value)
-                self.cov.chunk(got, int(dec.out_nesc.value), int(dec.j.value), int(dec.base.value),
+                self.cov.chunk(got, int(dec.out_nesc.value), int(dec.out_j.value), int(dec.base.value),
                                int(dec.bypass.value))
                 if self.seen >= len(self.expect):
                     self.errors.append(f"unexpected chunk #{self.seen}")

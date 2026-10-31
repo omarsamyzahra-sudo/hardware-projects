@@ -52,10 +52,12 @@ decoder's own energy is included (130 nm, so the savings are conservative).
 | speed vs. the same kernel on raw BF16 | 0.977× (whole model), 0.971–0.983× (one layer) | measured |
 | Nsight, gate_proj: raw kernel | 89% of DRAM peak, 14% SM: memory-bound | measured |
 | Nsight, gate_proj: ew kernel | 29% fewer DRAM bytes, 68% DRAM, 78% SM (ALU): compute-bound | measured |
+| after the Nsight rewrite (gemv_ew2), fixed clocks | layer 1.062× raw (gate_proj 1.21×), 26% fewer instructions, still bit-identical | measured |
+| gemv_ew2, wall clock | 1.03–1.05× the best raw kernel | measured |
 
-The GPU saves memory but not time: Nsight shows the decode moves the
-bottleneck from DRAM to the ALUs, so the instructions cost what the smaller
-reads save. That is the case for decoding in hardware next to the MAC array.
+On a GPU the decode moves the bottleneck from DRAM to the ALUs (Nsight).
+Rewriting it with that in mind turned break-even into 1.06×, still far from
+the 1.42× ceiling the hardware decoder reaches. That is the case for decoding in hardware next to the MAC array.
 
 **External reference, not our measurement:** ZipServ (whose TCA-TBE format
 this one follows) reports 1.31–1.36× on GPUs with a tensor-core

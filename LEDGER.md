@@ -459,6 +459,73 @@ hardware decoder does that work in dedicated logic beside the MACs, which is
 why the RTL keeps 99.9% of the ceiling. (Nsight estimates ~21% headroom in the
 ew kernel's instruction mix; not tuned, per the brief.)
 
+## 2026-10-31 — gemv_ew2: the decode kernel rewritten after Nsight **[measured]**
+
+Nsight said gemv_ew was ALU-bound (78% SM, 84% ALU pipe, 68% DRAM), so the
+decode was rewritten as `gemv_ew2` (`gpu/ewgemv_kernels.cuh`; gemv_ew kept
+for the comparison). Same loads, same escape scan, same multiply-add order,
+so its y is still bit-identical to the raw kernel; only the decode changed:
+- bit planes → code nibbles with shifts and masks (`spread8`), instead of
+  3 bit extracts per weight;
+- 4 codes → 4 exponents with one `__byte_perm` through the table
+  {0, base+1, …, base+7}; escapes patched in after, in order, by a loop that
+  only runs where there are some (~3% of weights);
+- 4 BF16 weights built at once with 32-bit masks, interleaved with
+  `__byte_perm`;
+- sign/mantissa and x loads issued before the escape scan so their latency
+  overlaps it.
+
+Correctness: `ewgemv.exe` checks ew == ew2 == bf16 bitwise on all 7
+projections at G = 8, 16, 32: **0 rows differ**. Whole model with the DLL on
+ew2 (`e2e_demo.py kew` + `compare_kernels`): **logits bit-identical** to our
+raw kernels on all 3 prompts, tokens identical to stock. (That run's tokens/s,
+`*_busy-cpu.*`, isn't comparable: the WSL layouts were loading the CPU and the
+demo is Python-bound.)
+
+Speed, layer 12, G = 16, Nsight at locked base clocks (one run, all three
+kernels; `gpu/results/nsight/gemv_all3_g16.ncu-repz`):
+
+| | raw BF16 | gemv_ew | **gemv_ew2** |
+|---|---|---|---|
+| layer time | 118.6 µs | 120.0 µs (0.988×) | **111.7 µs (1.062×)** |
+| instructions | 2.54 M | 13.72 M | 10.10 M (−26%) |
+| DRAM bytes | 29.87 MB | 21.08 MB | 21.07 MB |
+| gate_proj time | 32.8 µs | 31.1 µs | **27.1 µs (1.21×)** |
+| gate_proj DRAM / SM / ALU | 266 GB/s / 14% / 13% | 198 GB/s / 78% / 84% | 227 GB/s / 63% / 67% |
+
+Wall clock (`ewgemv.exe`, now 15 trials interleaved across kernels so laptop
+clock drift hits all of them alike; 4 runs with the layouts loading the CPU):
+best ew2 vs best raw **1.034–1.054×**, best gemv_ew 0.985–1.017×
+(`rtx3060-laptop_layer12_ew2.txt`).
+
+Reading: the rewrite turns the GPU from break-even into a small win (+6% on
+the layer, +21% on the big MLP matrices), still well short of the 1.42×
+ceiling. The ALU is still the busiest unit (67%), and the small matrices
+(k/v, 16 blocks) and down_proj (112 long rows) don't have enough parallel
+work to hide latency in either kernel. The hardware decoder needs none of
+this: it reaches 99.9% of the ceiling.
+
+## 2026-10-31 — decoder output register (slow-corner timing) **[sim; layout pending]**
+
+The decoder missed 50 MHz at the slow corner by 0.54 ns. Worst path
+(`openlane/decoder/results`, ss 100 °C 1.60 V): a tile-buffer flop → the
+escape-window muxes (mux4, mux2, or3, xnor2, …) → `out_w`, 13.7 ns of
+logic plus the flow's default 4 ns output budget. `out_w` was combinational.
+
+Fix (`rtl/weight_decoder.sv`): the decoded chunk goes into an output stage;
+`out_valid`/`out_w`/`out_nesc` are flops, and the stage takes a new chunk
+whenever it is empty or being read (`i_ready = !out_valid || out_ready`), so
+throughput stays one chunk per cycle and latency grows by one. The stall
+counters now look at `i_ready`. `out_j` registers the chunk index for the
+testbench monitor (nothing in the design reads it, so synthesis drops it).
+
+Regression (`pytest tb/test_top.py tb/test_cpu.py tb/test_dec.py::test_dec_rtl`):
+8/8 pass, coverage rebuilt from empty: 541/541 bins over 6 builds. Cycles:
+bandwidth-limited test 10,327 → 10,328 decoded, 14,642 → 14,643 raw, exactly
+the one added cycle; compute-bound test unchanged (7,550 / 7,515). The
+real-layer cycle counts above are from the unregistered decoder; each job
+gains one cycle, which is invisible at the reported precision.
+
 ## Open (to do)
 
 Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight
@@ -469,7 +536,7 @@ baseline).
 Done 2026-10-31 (entries above): bandwidth-bound real layer (1.4246×, 99.9%
 of ceiling); decoder layout, gate-level sim of the routed netlist, power from
 real switching, energy per token; fused kernels in the whole-model demo;
-functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels; design-space sweep in simulation.
+functional coverage (541/541 with L = 4); Nsight Compute on the GPU kernels and the gemv_ew2 rewrite (1.06×); design-space sweep in simulation.
 
 Running / queued (WSL, one layout at a time):
 1. Engine layout (`openlane/run.sh engine`, ew_top with KMAX = 896).

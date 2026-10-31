@@ -15,7 +15,8 @@
 // checked against a CPU double-precision reference.
 //
 // Timing: the whole layer (7 GEMVs, ~30 MB of BF16 weights, 10x the L2) back
-// to back, median of 7 trials of 100 layers each. Weights come from DRAM.
+// to back, median of 15 trials of 100 layers each, the
+// trials interleaved across kernels. Weights come from DRAM.
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 
@@ -97,9 +98,10 @@ int main(int argc, char **argv) {
     cublasHandle_t h;
     CB(cublasCreate(&h));
     const float one = 1.f, zero = 0.f;
-    // modes: 0..2 = bf16 G=8/16/32, 3..5 = ew G=8/16/32, 6 = cuBLAS
-    const int NM = 7;
-    const char *names[NM] = {"bf16 G8", "bf16 G16", "bf16 G32", "ew G8", "ew G16", "ew G32", "cublas"};
+    // modes: 0..2 = bf16 G=8/16/32, 3..5 = ew G=8/16/32, 6 = cuBLAS, 7..9 = ew2 G=8/16/32
+    const int NM = 10;
+    const char *names[NM] = {"bf16 G8", "bf16 G16", "bf16 G32", "ew G8", "ew G16", "ew G32", "cublas",
+                             "ew2 G8", "ew2 G16", "ew2 G32"};
     auto run = [&](int mode) {
         for (auto &m : ms) {
             dim3 grid((m.rows + WARPS - 1) / WARPS), block(32 * WARPS);
@@ -110,6 +112,9 @@ int main(int argc, char **argv) {
             case 3: gemv_ew<8><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
             case 4: gemv_ew<16><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
             case 5: gemv_ew<32><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
+            case 7: gemv_ew2<8><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
+            case 8: gemv_ew2<16><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
+            case 9: gemv_ew2<32><<<grid, block>>>(m.dcode, m.dsm, m.desc, m.drow, m.dx, m.dy, m.rows, m.cols, m.base); break;
             default:
                 CB(cublasGemmEx(h, CUBLAS_OP_T, CUBLAS_OP_N, m.rows, 1, m.cols, &one, m.dw, CUDA_R_16BF, m.cols,
                                 m.dx, CUDA_R_16BF, m.cols, &zero, m.dy, CUDA_R_32F, m.rows,
@@ -145,14 +150,14 @@ int main(int argc, char **argv) {
                 ref += p; mag += fabs(p);
             }
             for (int g = 0; g < 3; g++) {
-                uint32_t a, b;
-                memcpy(&a, &ys[g][i][r], 4); memcpy(&b, &ys[3 + g][i][r], 4);
-                diff += a != b;
+                uint32_t a, b, c;
+                memcpy(&a, &ys[g][i][r], 4); memcpy(&b, &ys[3 + g][i][r], 4); memcpy(&c, &ys[7 + g][i][r], 4);
+                diff += (a != b) || (a != c);
             }
             for (int t = 0; t < NM; t++) worst[t] = std::max(worst[t], fabs(ys[t][i][r] - ref) / (mag + 1e-30));
         }
-        double wk = *std::max_element(worst, worst + 6);
-        printf("check %-5s %5dx%-5d  ew==bf16 bitwise (G=8,16,32): %s (%zu rows differ)  max |err|/sum|wx|: ours %.1e cublas %.1e\n",
+        double wk = std::max(*std::max_element(worst, worst + 6), *std::max_element(worst + 7, worst + NM));
+        printf("check %-5s %5dx%-5d  ew==ew2==bf16 bitwise (G=8,16,32): %s (%zu rows differ)  max |err|/sum|wx|: ours %.1e cublas %.1e\n",
                m.name.c_str(), m.rows, m.cols, diff ? "NO" : "yes", diff, wk, worst[6]);
         ok = ok && diff == 0 && wk < 1e-5 && worst[6] < 1e-3;
     }
@@ -168,21 +173,26 @@ int main(int argc, char **argv) {
     double med[NM];
     cudaEvent_t e0, e1;
     CK(cudaEventCreate(&e0)); CK(cudaEventCreate(&e1));
-    const int REPS = 100, TRIALS = 7;
-    for (int mode = 0; mode < NM; mode++) {
+    // trials go round-robin over the kernels, so clock and heat drift on a
+    // laptop lands on every kernel alike instead of on whichever ran last
+    const int REPS = 100, TRIALS = 15;
+    std::vector<double> t[NM];
+    for (int mode = 0; mode < NM; mode++)
         for (int i = 0; i < 20; i++) run(mode);
-        std::vector<double> t;
-        for (int tr = 0; tr < TRIALS; tr++) {
+    for (int tr = 0; tr < TRIALS; tr++) {
+        for (int mode = 0; mode < NM; mode++) {
             CK(cudaEventRecord(e0));
             for (int i = 0; i < REPS; i++) run(mode);
             CK(cudaEventRecord(e1));
             CK(cudaEventSynchronize(e1));
             float ms_ = 0;
             CK(cudaEventElapsedTime(&ms_, e0, e1));
-            t.push_back(ms_ * 1e3 / REPS);
+            t[mode].push_back(ms_ * 1e3 / REPS);
         }
-        std::sort(t.begin(), t.end());
-        med[mode] = t[TRIALS / 2];
+    }
+    for (int mode = 0; mode < NM; mode++) {
+        std::sort(t[mode].begin(), t[mode].end());
+        med[mode] = t[mode][TRIALS / 2];
     }
     double bits = 8.0 * ew_bytes / weights;
     int bb = (int)(std::min_element(med, med + 3) - med), be = 3 + (int)(std::min_element(med + 3, med + 6) - (med + 3));
@@ -190,10 +200,13 @@ int main(int argc, char **argv) {
            weights, raw_bytes / 1e6, ew_bytes / 1e6, bits);
     printf("%-9s %10s %12s %16s\n", "kernel", "us/layer", "weight GB/s", "vs best bf16");
     for (int mode = 0; mode < NM; mode++) {
-        size_t b = (mode >= 3 && mode < 6) ? ew_bytes : raw_bytes;
+        size_t b = ((mode >= 3 && mode < 6) || mode >= 7) ? ew_bytes : raw_bytes;
         printf("%-9s %10.1f %12.1f %15.3fx\n", names[mode], med[mode], b / (med[mode] * 1e3), med[bb] / med[mode]);
     }
-    printf("best ew vs best bf16: %.3fx   ceiling 16/bits = %.3fx\n", med[bb] / med[be], 16.0 / bits);
-    printf("csv,%s,%s,%.2f,%s,%.2f,%.2f,%.4f\n", prop.name, names[bb], med[bb], names[be], med[be], med[6], bits);
+    int b2 = 7 + (int)(std::min_element(med + 7, med + 10) - (med + 7));
+    printf("best ew vs best bf16: %.3fx   best ew2 vs best bf16: %.3fx   ceiling 16/bits = %.3fx\n",
+           med[bb] / med[be], med[bb] / med[b2], 16.0 / bits);
+    printf("csv,%s,%s,%.2f,%s,%.2f,%.2f,%.4f,%s,%.2f\n", prop.name, names[bb], med[bb], names[be], med[be], med[6], bits,
+           names[b2], med[b2]);
     return 0;
 }

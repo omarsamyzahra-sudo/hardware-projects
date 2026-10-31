@@ -26,6 +26,12 @@
 //
 // Bypass (the raw-BF16 baseline): the smr word is the weights themselves and
 // the lanes are skipped. Nothing else changes.
+//
+// Output register: a chunk is decoded in one cycle into an output stage
+// (out_valid/out_w/out_nesc are flops), which takes a new chunk whenever it
+// is empty or being read, so throughput stays one chunk per cycle and only
+// latency grows by one. Without it the escape-routing muxes drove out_w
+// combinationally and missed 50 MHz at the slow corner by 0.54 ns.
 
 module weight_decoder #(
     parameter int L             = 8,
@@ -129,15 +135,26 @@ module weight_decoder #(
     endgenerate
 
     // ------------------------------------------------------------- issue
-    logic dec_ok, fire;
+    logic dec_ok, iv, i_ready, fire;
+    logic [JW-1:0] out_j;                         // chunk index of out_w (for testbenches)
     assign dec_ok     = cur_valid && smr_valid && (CW'(need) <= wcnt);
-    assign out_valid  = bypass ? smr_valid : dec_ok;
-    assign fire       = out_valid && out_ready;
-    assign out_w      = bypass ? smr_data : dec_w;
-    assign out_nesc   = bypass ? '0 : need;
+    assign iv         = bypass ? smr_valid : dec_ok;
+    assign i_ready    = !out_valid || out_ready;  // output stage empty or being read
+    assign fire       = iv && i_ready;
     assign smr_ready  = fire && (bypass || h);
-    assign stall_esc  = out_ready && !bypass && cur_valid && smr_valid && (CW'(need) > wcnt);
-    assign stall_data = out_ready && !out_valid && !stall_esc;
+    assign stall_esc  = i_ready && !bypass && cur_valid && smr_valid && (CW'(need) > wcnt);
+    assign stall_data = i_ready && !iv && !stall_esc;
+
+    always_ff @(posedge clk) begin
+        if (!rst_n || clear) begin
+            out_valid <= 1'b0;
+        end else if (i_ready) begin
+            out_valid <= iv;
+            out_w     <= bypass ? smr_data : dec_w;
+            out_nesc  <= bypass ? '0 : need;
+            out_j     <= j;
+        end
+    end
 
     assign load_cur   = stg_full && (!cur_valid || (fire && !bypass && last_chunk));
     assign esc_ready  = !bypass && (32'(wcnt) + 8 <= WB);

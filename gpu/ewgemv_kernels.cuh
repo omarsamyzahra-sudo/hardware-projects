@@ -102,3 +102,91 @@ __global__ void gemv_ew(const uint8_t *__restrict__ code, const uint8_t *__restr
     acc = warp_sum(acc);
     if (lane == 0) y[row] = acc;
 }
+
+// bit j of an 8-bit plane byte -> bit 4j (one nibble per weight)
+__device__ __forceinline__ uint32_t spread8(uint32_t x) {
+    x = (x | (x << 12)) & 0x000F000Fu;
+    x = (x | (x << 6)) & 0x03030303u;
+    return (x | (x << 3)) & 0x11111111u;
+}
+
+// gemv_ew rewritten after Nsight showed it ALU-bound (78% SM, 68% DRAM). Same
+// loads, same escape scan, same multiply-add order (so y is bit-identical to
+// gemv_bf16 and gemv_ew); only the decode changes:
+//   - the 3 plane bytes become 8 code nibbles with spread8 (shifts and masks
+//     instead of 3 bit extracts per weight)
+//   - one __byte_perm maps 4 codes to 4 exponents through the table
+//     {0, base+1, ..., base+7}; escapes (code 0, ~3% of weights) are patched
+//     in after, in order, by a loop that only runs where there are some
+//   - 4 BF16 weights are built at once with 32-bit masks, then interleaved
+//     into two words with __byte_perm
+//   - the sign/mantissa and x loads go out before the escape scan, so their
+//     DRAM latency overlaps it
+template <int G>
+__global__ void gemv_ew2(const uint8_t *__restrict__ code, const uint8_t *__restrict__ sm,
+                         const uint8_t *__restrict__ esc, const uint32_t *__restrict__ rowesc,
+                         const uint16_t *__restrict__ x, float *__restrict__ y, int rows, int cols,
+                         uint32_t base) {
+    constexpr int NG = G / 8;
+    int row = blockIdx.x * WARPS + threadIdx.x / 32, lane = threadIdx.x % 32;
+    if (row >= rows) return;
+    uint32_t t_lo = 0, t_hi = 0;                        // exponent of code c in byte c
+    for (int c = 1; c < 4; c++) t_lo |= ((base + c) & 0xff) << (8 * c);
+    for (int c = 4; c < 8; c++) t_hi |= ((base + c) & 0xff) << (8 * (c - 4));
+    uint32_t off = rowesc[row];
+    float acc = 0.f;
+    for (int s0 = 0; s0 < cols; s0 += 32 * G) {
+        int k0 = s0 + lane * G;
+        bool active = k0 < cols;
+        size_t flat = (size_t)row * cols + k0;
+        size_t cb = (flat >> 6) * 24 + ((flat >> 3) & 7);
+        uint32_t b[3][NG];
+        uint2 sv[NG];
+        uint4 xv[NG];
+        int cnt = 0;
+#pragma unroll
+        for (int q = 0; q < NG; q++) {
+#pragma unroll
+            for (int p = 0; p < 3; p++) b[p][q] = active ? code[cb + 8 * p + q] : 0xff;
+            if (active) {
+                sv[q] = *reinterpret_cast<const uint2 *>(sm + flat + 8 * q);
+                xv[q] = *reinterpret_cast<const uint4 *>(x + k0 + 8 * q);
+            }
+            cnt += __popc(~(b[0][q] | b[1][q] | b[2][q]) & 0xff);
+        }
+        int inc = cnt;
+        for (int o = 1; o < 32; o <<= 1) {
+            int t = __shfl_up_sync(0xffffffffu, inc, o);
+            if (lane >= o) inc += t;
+        }
+        int total = __shfl_sync(0xffffffffu, inc, 31);
+        if (active) {
+            uint32_t e = off + inc - cnt;
+#pragma unroll
+            for (int q = 0; q < NG; q++) {
+                uint32_t c = spread8(b[0][q]) | (spread8(b[1][q]) << 1) | (spread8(b[2][q]) << 2);
+                uint32_t E[2] = {__byte_perm(t_lo, t_hi, c & 0xffff), __byte_perm(t_lo, t_hi, c >> 16)};
+                for (uint32_t z = ~(c | (c >> 1) | (c >> 2)) & 0x11111111u; z; z &= z - 1) {
+                    int n = __ffs(z) - 1;                   // weight n/4 escaped
+                    E[n >> 4] |= (uint32_t)esc[e++] << (2 * (n & 15));
+                }
+                uint32_t S[2] = {sv[q].x, sv[q].y}, X[4] = {xv[q].x, xv[q].y, xv[q].z, xv[q].w};
+#pragma unroll
+                for (int h = 0; h < 2; h++) {
+                    uint32_t hi = (S[h] & 0x80808080u) | ((E[h] >> 1) & 0x7f7f7f7fu);
+                    uint32_t lo = (S[h] & 0x7f7f7f7fu) | ((E[h] << 7) & 0x80808080u);
+                    uint32_t w[2] = {__byte_perm(lo, hi, 0x5140), __byte_perm(lo, hi, 0x7362)};
+#pragma unroll
+                    for (int p = 0; p < 2; p++) {
+                        uint32_t xw = X[2 * h + p];
+                        acc = fmaf(__uint_as_float(w[p] << 16), __uint_as_float(xw << 16), acc);
+                        acc = fmaf(__uint_as_float(w[p] & 0xffff0000u), __uint_as_float(xw & 0xffff0000u), acc);
+                    }
+                }
+            }
+        }
+        off += total;
+    }
+    acc = warp_sum(acc);
+    if (lane == 0) y[row] = acc;
+}

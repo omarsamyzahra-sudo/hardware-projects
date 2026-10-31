@@ -1,0 +1,23 @@
+gpu: NVIDIA GeForce RTX 3060 Laptop GPU, 30 SMs, L2 3072 KB, bus 192 bit
+check q       896x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 1.4e-08 cublas 2.7e-07
+check k       128x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 1.5e-08 cublas 1.4e-08
+check v       128x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 1.2e-08 cublas 1.4e-08
+check o       896x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 2.1e-08 cublas 2.5e-07
+check gate   4864x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 2.5e-08 cublas 3.1e-08
+check up     4864x896    ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 5.2e-08 cublas 5.0e-08
+check down    896x4864   ew==ew2==bf16 bitwise (G=8,16,32): yes (0 rows differ)  max |err|/sum|wx|: ours 4.2e-08 cublas 4.5e-07
+
+layer: 14909440 weights; bytes read: raw 29.82 MB, ew 20.99 MB (11.262 bits/weight incl. row index)
+kernel      us/layer  weight GB/s     vs best bf16
+bf16 G8        116.7        255.4           0.996x
+bf16 G16       116.2        256.5           1.000x
+bf16 G32       117.7        253.3           0.988x
+ew G8          131.0        160.2           0.887x
+ew G16         118.1        177.8           0.985x
+ew G32         126.0        166.6           0.923x
+cublas         149.9        198.9           0.775x
+ew2 G8         119.6        175.5           0.972x
+ew2 G16        113.7        184.6           1.023x
+ew2 G32        111.8        187.7           1.039x
+best ew vs best bf16: 0.985x   best ew2 vs best bf16: 1.039x   ceiling 16/bits = 1.421x
+csv,NVIDIA GeForce RTX 3060 Laptop GPU,bf16 G16,116.24,ew G16,118.06,149.92,11.2619,ew2 G32,111.84
