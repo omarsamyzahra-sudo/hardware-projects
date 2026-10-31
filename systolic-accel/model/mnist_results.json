@@ -1,0 +1,8 @@
+{
+  "float_accuracy": 0.9699,
+  "int8_accuracy": 0.9701,
+  "l1_mult": 36278,
+  "l1_shift": 26,
+  "exported_images": 32,
+  "exported_correct": 31
+}

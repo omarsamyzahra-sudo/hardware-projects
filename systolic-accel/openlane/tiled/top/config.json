@@ -1,0 +1,530 @@
+{
+    "DESIGN_NAME": "systolic_array",
+    "VERILOG_FILES": [
+        "dir::../../../rtl/systolic_array.sv"
+    ],
+    "USE_SLANG": true,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "SYNTH_STRATEGY": "DELAY 4",
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        1960,
+        1960
+    ],
+    "IO_PIN_ORDER_CFG": "dir::pin_order.cfg",
+    "VERILOG_POWER_DEFINE": "USE_POWER_PINS",
+    "PDN_MACRO_CONNECTIONS": [
+        "g_row.*u_pe VPWR VGND VPWR VGND"
+    ],
+    "MACROS": {
+        "pe": {
+            "instances": {
+                "g_row[0].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[0].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        1660
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[1].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        1440
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[2].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        1220
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[3].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        1000
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[4].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        780
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[5].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        560
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[6].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        340
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[0].u_pe": {
+                    "location": [
+                        120,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[1].u_pe": {
+                    "location": [
+                        340,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[2].u_pe": {
+                    "location": [
+                        560,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[3].u_pe": {
+                    "location": [
+                        780,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[4].u_pe": {
+                    "location": [
+                        1000,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[5].u_pe": {
+                    "location": [
+                        1220,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[6].u_pe": {
+                    "location": [
+                        1440,
+                        120
+                    ],
+                    "orientation": "N"
+                },
+                "g_row[7].g_col[7].u_pe": {
+                    "location": [
+                        1660,
+                        120
+                    ],
+                    "orientation": "N"
+                }
+            },
+            "vh": [
+                "dir::pe.vh"
+            ],
+            "gds": [
+                "dir::macro/pe.gds"
+            ],
+            "lef": [
+                "dir::macro/pe.lef"
+            ],
+            "nl": [
+                "dir::macro/pe.nl.v"
+            ],
+            "spef": {
+                "min_*": [
+                    "dir::macro/pe.min.spef"
+                ],
+                "nom_*": [
+                    "dir::macro/pe.nom.spef"
+                ],
+                "max_*": [
+                    "dir::macro/pe.max.spef"
+                ]
+            },
+            "lib": {
+                "min_tt_025C_1v80": [
+                    "dir::macro/pe__min_tt_025C_1v80.lib"
+                ],
+                "min_ss_100C_1v60": [
+                    "dir::macro/pe__min_ss_100C_1v60.lib"
+                ],
+                "min_ff_n40C_1v95": [
+                    "dir::macro/pe__min_ff_n40C_1v95.lib"
+                ],
+                "nom_tt_025C_1v80": [
+                    "dir::macro/pe__nom_tt_025C_1v80.lib"
+                ],
+                "nom_ss_100C_1v60": [
+                    "dir::macro/pe__nom_ss_100C_1v60.lib"
+                ],
+                "nom_ff_n40C_1v95": [
+                    "dir::macro/pe__nom_ff_n40C_1v95.lib"
+                ],
+                "max_tt_025C_1v80": [
+                    "dir::macro/pe__max_tt_025C_1v80.lib"
+                ],
+                "max_ss_100C_1v60": [
+                    "dir::macro/pe__max_ss_100C_1v60.lib"
+                ],
+                "max_ff_n40C_1v95": [
+                    "dir::macro/pe__max_ff_n40C_1v95.lib"
+                ]
+            }
+        }
+    },
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
+}
