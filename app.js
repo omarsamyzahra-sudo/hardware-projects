@@ -338,7 +338,7 @@ function App() {
         ["14,336/14,336", "chunks bit-exact when the routed gate-level netlist decodes real weights"],
         ["~80 MHz", "decoder on SKY130 at the typical corner, 0.053 mm² of cells, 3.53 mW from real switching (8.8 pJ per weight)"],
         ["16–26%", "less DRAM + decode energy per token, with HBM2 / GDDR5 energy from O’Connor et al., MICRO 2017 (an estimate)"],
-        ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical. In software the GPU only breaks even on speed (0.98×), which is the case for a hardware decoder"],
+        ["792 MiB", "peak GPU memory for the whole model running from compressed weights with my fused CUDA kernels (stock: 1,078), logits bit-identical. In software the GPU only breaks even on speed (0.98×): Nsight shows the decode turns a DRAM-bound kernel (89% of peak) into an ALU-bound one (78%), which is the case for a hardware decoder"],
       ]}/>
     <//>
 
