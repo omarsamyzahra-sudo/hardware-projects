@@ -17,7 +17,8 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 const UM = 1 / 190;                  // scene units per micron: the 0.37 mm die is ~2 units wide
 const Z = 3;                         // heights exaggerated 3x so the layers read at this scale
-const BEAT = 2.6, ESC = 0.0281;      // seconds per chunk; escape probability per weight [measured, Phase 1]
+const BEAT = 1.4, ESC = 0.0281;      // seconds per chunk; escape probability per weight [measured, Phase 1]
+const RISE = 0.3;                    // seconds a wire takes to brighten, so nothing switches on at once
 // layer z ranges in microns (SKY130 stack) and colours
 const LAYER = [[1.38, 1.74, 0x4a7fe0], [2.01, 2.37, 0xa95ad6], [2.79, 3.63, 0x4fbf6a], [4.02, 4.87, 0xe8c547], [5.37, 6.63, 0xe0883a]];
 const LI1_TOP = 1.04;
@@ -31,11 +32,13 @@ const CYCLE = /* glsl */ `
 uniform float t;
 float hash(float x) { return fract(sin(x * 12.9898 + 4.1414) * 43758.5453); }
 float escaped(float b, float lane) { return step(hash(b * 8.0 + lane), ${ESC}); }
-float hit(float f, float at, float k) { return smoothstep(at - 0.1, at, f) * exp(-max(f - at, 0.0) * k * 0.7); }
-// how hard a wire whose driver is of this kind / lane / sub fires right now, delayed by d (fraction of a beat)
-float act(float kind, float lane, float sub, float d) {
-  float x = t / ${BEAT.toFixed(2)} - d, b = floor(x), f = fract(x), j = mod(b, 8.0);
-  float need = 0.0;
+float hit(float f, float at, float k) {
+  float r = ${(RISE / BEAT).toFixed(3)};
+  return smoothstep(at, at + r, f) * exp(-max(f - at - r, 0.0) * k * 0.5);
+}
+// how hard a wire whose driver is of this kind / lane / sub fires at f beats into beat b
+float pulse(float kind, float lane, float sub, float b, float f) {
+  float j = mod(b, 8.0), need = 0.0;
   for (int i = 0; i < 8; i++) need += escaped(b, float(i));
   float any = step(0.5, need);
   if (kind == 1.0) return hit(f, 0.0, 5.0) * (floor(mod(sub, 64.0) / 8.0) == j ? 1.0 : j == 0.0 ? 0.25 : 0.0);
@@ -51,6 +54,11 @@ float act(float kind, float lane, float sub, float d) {
   if (kind == 11.0) return hit(f, 0.0, 9.0) * 0.1;
   if (kind == 12.0) return hit(f, 0.0, 5.0) * 0.1;
   return 0.0;
+}
+// the same, now, delayed by d (fraction of a beat); the previous beat's pulses are still fading
+float act(float kind, float lane, float sub, float d) {
+  float x = t / ${BEAT.toFixed(2)} - d, b = floor(x), f = fract(x);
+  return pulse(kind, lane, sub, b, f) + pulse(kind, lane, sub, b - 1.0, f + 1.0);
 }`;
 
 // wires: solid, in their layer's colour, brightening when the cell driving the net fires
@@ -194,15 +202,15 @@ export function mountDecoder(canvas, { head, buf, baseUrl, reducedMotion, onRead
   function frame(now) {
     raf = 0;
     const t = (now - t0) / 1000;
-    uniforms.t.value = reducedMotion ? 0.12 * BEAT : t;
+    uniforms.t.value = reducedMotion ? 0.4 * BEAT : t;
     cur.x += (pointer.x - cur.x) * 0.05;
     cur.y += (pointer.y - cur.y) * 0.05;
     rig.rotation.y = -0.5 + cur.x * 0.3 + (reducedMotion ? 0 : Math.sin(t * 0.13) * 0.08);
     rig.rotation.x = cur.y * 0.1;
-    const dist = wide ? 4.7 : Math.max(4.7, 5.2 / camera.aspect), el = 0.98;   // portrait: fit the die across the width
+    const dist = wide ? 3.3 : Math.max(3.4, 3.9 / camera.aspect), el = 0.98;   // portrait: fit the die across the width
     camera.position.set(0, Math.sin(el) * dist, Math.cos(el) * dist);
     camera.lookAt(0, 0, 0);
-    camera.setViewOffset(w, h, wide ? -w * 0.19 : 0, wide ? 0 : h * 0.27, w, h);
+    camera.setViewOffset(w, h, wide ? -w * 0.25 : 0, wide ? 0 : h * 0.27, w, h);
     composer.render();
     if (first) { first = false; onReady && onReady(); }
     if (visible && !reducedMotion) raf = requestAnimationFrame(frame);
