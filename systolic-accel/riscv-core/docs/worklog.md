@@ -71,4 +71,3 @@
   cycles) needed for induction. 30 assertions proven.
 - Mutation: 5 new freeze mutants, all killed (one only by formal: an
   equivalent mutant in simulation). 33/33.
-- Built by Claude (Rayan didn't write this part).
