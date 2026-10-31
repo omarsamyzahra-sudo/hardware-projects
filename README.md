@@ -82,6 +82,7 @@ CPU's is 1, and it reaches 0.82 on vecadd and 0.64 on Collatz.
 - `tb/kernels.py`: the kernels, in assembly, and a memory-image builder
 - `tb/test_gpu.py`, `tb/randkernel.py`, `tb/mutate.py`, `tb/test_bench.py`
 - `riscv-core/`: the CPU (submodule)
+- `openlane/`: SKY130 layout of one SIMT core (`run.sh` explains the settings), results and renders
 
 ## Running
 In Git Bash, from the repo root:
@@ -103,3 +104,10 @@ units, 32-thread warps and dozens of resident warps per SM, and, since
 NVIDIA Volta, independent thread scheduling. That last one fixes a deadlock
 this design keeps on purpose: one thread spinning while it waits on another
 thread in the same warp.
+
+## How this was built
+
+The code was written with Claude Code (Anthropic's AI coding agent) under
+Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
+which trade-offs to take; Claude wrote the code and ran the tools. Every
+number here comes from a script or log in this folder.
