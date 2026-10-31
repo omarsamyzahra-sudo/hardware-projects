@@ -1,7 +1,7 @@
 # simt-gpu
 
 A small SIMT GPU in SystemVerilog, built on the decoder, ALU, branch unit and
-immediate generator of [riscv-core](riscv-core) (a git submodule, reused
+immediate generator of [riscv-core](riscv-core) (a pinned copy of [`../riscv-core`](../riscv-core) at commit 48a8279, reused
 unchanged). Threads run RV32I plus `mul`, find out who they are with CUDA-style
 ID registers, and are checked against riscv-core's golden model.
 
@@ -81,7 +81,7 @@ CPU's is 1, and it reaches 0.82 on vecadd and 0.64 on Collatz.
 - `tb/gpu.py`: cocotb driver and golden model (riscv-core's ISS, one instance per thread)
 - `tb/kernels.py`: the kernels, in assembly, and a memory-image builder
 - `tb/test_gpu.py`, `tb/randkernel.py`, `tb/mutate.py`, `tb/test_bench.py`
-- `riscv-core/`: the CPU (submodule)
+- `riscv-core/`: the CPU, a pinned copy of `../riscv-core` at 48a8279
 - `openlane/`: SKY130 layout of one SIMT core (`run.sh` explains the settings), results and renders
 
 ## Running
@@ -89,7 +89,6 @@ In Git Bash, from the repo root:
 
 ```bash
 source env.sh
-git submodule update --init
 pytest tb/test_gpu.py -s          # about 1 min; -s prints cycles and SIMD efficiency
 pytest tb/test_bench.py -s        # CPU vs GPU table, writes docs/bench.json
 python tb/mutate.py               # plants 10 bugs, expects every one caught

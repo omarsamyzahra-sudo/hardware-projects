@@ -2,8 +2,8 @@
 
 An int8 **8x8 weight-stationary systolic array** accelerator with an
 AXI4-Lite interface, verified with cocotb and UVM, and integrated into a
-RISC-V SoC with [riscv-core](https://github.com/withered24/riscv-core) (a
-5-stage RV32I pipeline, included as a submodule). Bare-metal C drives it to
+RISC-V SoC with [riscv-core](../riscv-core) (a
+5-stage RV32I pipeline; `riscv-core/` here is a pinned copy at commit 48a8279). Bare-metal C drives it to
 run a quantized MNIST network. Everything runs in simulation (Icarus Verilog,
 Vivado xsim).
 
@@ -172,8 +172,6 @@ pytest tb/test_array.py tb/test_accel.py     # cocotb, ~20 s
 python model/mnist.py                        # train + quantize + export sw/mnist_data.h
 pytest tb/test_soc.py                        # C programs on the SoC (slow: Icarus, ~2k cycles/s)
 ```
-
-`git clone --recursive` for the riscv-core submodule.
 
 ## How this was built
 
