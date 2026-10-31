@@ -75,7 +75,9 @@ nav.top.solid { background: rgba(5,7,12,.78); backdrop-filter: blur(14px); borde
 .hero-cap b { display: block; font-weight: 600; color: #f1f4f8; margin-bottom: 6px; }
 .hero-cap .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .hero-cap i { font-style: normal; margin-right: 6px; }
-.cy { color: var(--cy); } .am { color: var(--am); } .vi { color: #c77dff; } .ye { color: #ffd166; } .pk { color: #f15bb5; }
+.hero-cap .cap-sub { display: block; color: #b8c2d2; margin: -2px 0 8px; }
+.l-si { color: #5fae54; } .l-m1 { color: #4a7fe0; } .l-m2 { color: #a95ad6; } .l-m3 { color: #4fbf6a; } .l-pw { color: #e8c547; }
+.cy { color: var(--cy); } .am { color: var(--am); }
 @media (max-width: 900px) {
   .hero-shade { background: linear-gradient(to bottom, rgba(5,7,12,.2), rgba(5,7,12,.82) 55%, var(--bg)); }
   .hero-inner { padding-top: 38svh; }

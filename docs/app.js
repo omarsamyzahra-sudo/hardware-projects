@@ -29,7 +29,7 @@ function Hero() {
         const [{ mountDecoder }, head, buf] = await Promise.all([import("./hero3d.js"),
           fetch("assets/hero_decoder.json").then((r) => r.json()), fetch("assets/hero_decoder.bin").then((r) => r.arrayBuffer())]);
         if (dead) return;
-        stop = mountDecoder(canvas.current, { head, buf, reducedMotion, onReady: () => setReady(true) });
+        stop = mountDecoder(canvas.current, { head, buf, baseUrl: "assets/hero_decoder_base.jpg", reducedMotion, onReady: () => setReady(true) });
         if (!stop) setNoGL(true);
       } catch (e) { console.warn(e); setNoGL(true); }
     })();
@@ -53,8 +53,9 @@ function Hero() {
     </div>
     <div class="hero-cap small" aria-hidden="true">
       <b>My LLM weight decoder, laid out on SKY130 (0.37 mm)</b>
+      <span class="cap-sub">The wires light up as it decodes, 8 weights per beat.</span>
       <div class="legend mono">
-        <span><i class="vi">●</i>codes in</span><span><i class="ye">●</i>decode lanes</span><span><i class="am">●</i>weights out</span><span><i class="pk">●</i>escapes</span>
+        <span><i class="l-si">●</i>transistors</span><span><i class="l-m1">●</i>met1</span><span><i class="l-m2">●</i>met2</span><span><i class="l-m3">●</i>met3</span><span><i class="l-pw">●</i>power</span>
       </div>
     </div>
   </header>`;
