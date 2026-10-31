@@ -65,7 +65,7 @@ def section(text, name):
     return text[text.index("\n" + name):text.index("END " + name)]
 
 
-def parse_def(text):
+def parse_def(text, wires=True):
     units = int(re.search(r"UNITS DISTANCE MICRONS (\d+)", text).group(1))
     die = [int(v) / units for v in re.search(r"DIEAREA \( 0 0 \) \( (\d+) (\d+) \)", text).groups()]
     comps = {}
@@ -83,7 +83,8 @@ def parse_def(text):
         name = m.group(1).replace("\\", "")
         conn, _, wiring = m.group(2).partition("+ ROUTED")
         nets[name] = [(a.replace("\\", ""), b.replace("\\", "")) for a, b in re.findall(r"\(\s*(\S+)\s+(\S+)\s*\)", conn)]
-        routes[name] = segments("ROUTED" + wiring, units, None)
+        if wires:
+            routes[name] = segments("ROUTED" + wiring, units, None)
     power = []
     for stmt in section(text, "SPECIALNETS").split(";"):
         power += segments(stmt, units, True)

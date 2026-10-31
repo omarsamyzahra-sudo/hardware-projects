@@ -17,6 +17,8 @@ const file = (path) => `${REPO}/blob/main/${path}`;
 // measured on hardware, simulated, or estimated by a tool or model
 const Tag = ({ k }) => html`<i class=${"tag " + k.split(" ")[0]}>${k}</i>`;
 
+const ENGINE = new URLSearchParams(location.search).get("hero") !== "decoder";   // ?hero=decoder: the decoder-only hero
+
 function Hero() {
   const canvas = useRef(null);
   const [ready, setReady] = useState(false);
@@ -26,10 +28,12 @@ function Hero() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     (async () => {
       try {
-        const [{ mountDecoder }, head, buf] = await Promise.all([import("./hero3d.js"),
-          fetch("assets/hero_decoder.json").then((r) => r.json()), fetch("assets/hero_decoder.bin").then((r) => r.arrayBuffer())]);
+        const name = ENGINE ? "engine" : "decoder";
+        const [mod, head, buf] = await Promise.all([import(ENGINE ? "./hero_engine.js" : "./hero3d.js"),
+          fetch(`assets/hero_${name}.json`).then((r) => r.json()), fetch(`assets/hero_${name}.bin`).then((r) => r.arrayBuffer())]);
         if (dead) return;
-        stop = mountDecoder(canvas.current, { head, buf, baseUrl: "assets/hero_decoder_base.jpg", reducedMotion, onReady: () => setReady(true) });
+        const mount = ENGINE ? mod.mountEngine : mod.mountDecoder;
+        stop = mount(canvas.current, { head, buf, baseUrl: "assets/hero_decoder_base.jpg", reducedMotion, onReady: () => setReady(true) });
         if (!stop) setNoGL(true);
       } catch (e) { console.warn(e); setNoGL(true); }
     })();
@@ -51,13 +55,19 @@ function Hero() {
         <a class="btn-ghost" href=${`mailto:${EMAIL}`}>Email</a>
       </div>
     </div>
-    <div class="hero-cap small" aria-hidden="true">
+    ${ENGINE ? html`<div class="hero-cap small" aria-hidden="true">
+      <b>The full engine, laid out on SKY130 (2.8 mm)</b>
+      <span class="cap-sub">Data flows from block to block: decode, multiply, add up.</span>
+      <div class="legend mono">
+        <span><i style=${{ color: "#3a86ff" }}>●</i>memory streams</span><span><i style=${{ color: "#ffd166" }}>●</i>decoder</span><span><i style=${{ color: "#06d6a0" }}>●</i>activations</span><span><i style=${{ color: "#ff9f1c" }}>●</i>multipliers</span><span><i style=${{ color: "#ef476f" }}>●</i>adder tree</span><span><i style=${{ color: "#c77dff" }}>●</i>sum + output</span>
+      </div>
+    </div>` : html`<div class="hero-cap small" aria-hidden="true">
       <b>My LLM weight decoder, laid out on SKY130 (0.37 mm)</b>
       <span class="cap-sub">The wires light up as it decodes, 8 weights per beat.</span>
       <div class="legend mono">
         <span><i class="l-si">●</i>transistors</span><span><i class="l-m1">●</i>met1</span><span><i class="l-m2">●</i>met2</span><span><i class="l-m3">●</i>met3</span><span><i class="l-pw">●</i>power</span>
       </div>
-    </div>
+    </div>`}
   </header>`;
 }
 
