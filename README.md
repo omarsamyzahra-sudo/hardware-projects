@@ -54,7 +54,6 @@ that it takes the correct misaligned-load trap.
   testing (`mutate.py`)
 - `formal/`: SymbiYosys proof of the pipeline's SVA properties (`core.sby`)
 - `tests/`: official riscv-tests (git submodule) and `build_rvtests.py`
-- `fpga/`: Arty A7 top level and constraints
 - `openlane/`: SKY130 layout config (`run.sh`), results and KLayout renders (`render.sh`, `make_die.py`)
 - `docs/`: worklog, bug catalog, verification write-up
 
@@ -83,3 +82,10 @@ riscv-test fails, its disassembly is in `tests/build/rv32ui-p-<name>.dump`.
 
 Toolchain: Icarus Verilog, Yosys + yosys-slang, SymbiYosys + bitwuzla (OSS CAD Suite), cocotb 2.1, xPack
 `riscv-none-elf-gcc` 15.2.
+
+## How this was built
+
+The code was written with Claude Code (Anthropic's AI coding agent) under
+Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
+which trade-offs to take; Claude wrote the code and ran the tools. Every
+number here comes from a script or log in this folder.
