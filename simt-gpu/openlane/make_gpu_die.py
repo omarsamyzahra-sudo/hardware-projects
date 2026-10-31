@@ -197,7 +197,10 @@ def main():
          "title": "Where the placer put each unit", "specs": specs[:3], "labels": labels,
          "desc": "Every flip-flop labeled by the register it holds (from its net name), labels spread through the netlist "
                  "to the logic around them, then painted over the layout. Each lane’s registers and ALU form their own region: "
-                 "the 8-way SIMD structure is visible in silicon."},
+                 "the 8-way SIMD structure is visible in the layout. The regions are uneven because placement is flat: "
+                 "the placer only minimizes wire length and knows nothing about lanes, and every lane also wires to the "
+                 "shared fetch, scheduler and load/store unit, which pulls its edges inward. Equal tiles would take a "
+                 "hierarchical flow: one lane hardened as a macro and placed on a grid, as in the tiled systolic array."},
         {"tab": "GPU 250 µm", "src": "assets/gpu_mid.jpg", "alt": "250 micrometer window of the SIMT core layout",
          "title": "Zoom: the register-file sea", "specs": [["window", "250 µm"], ["metal", "met1–met5" if routed else "cells + power grid"]],
          "desc": "A 250 µm window in the middle of the core: dense rows of flip-flops and the read multiplexers that pick one "

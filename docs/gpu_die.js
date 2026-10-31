@@ -112,7 +112,7 @@ export const GPU_DIE = [
         "c": "rgb(120,140,170)"
       }
     ],
-    "desc": "Every flip-flop labeled by the register it holds (from its net name), labels spread through the netlist to the logic around them, then painted over the layout. Each lane’s registers and ALU form their own region: the 8-way SIMD structure is visible in silicon."
+    "desc": "Every flip-flop labeled by the register it holds (from its net name), labels spread through the netlist to the logic around them, then painted over the layout. Each lane’s registers and ALU form their own region: the 8-way SIMD structure is visible in the layout. The regions are uneven because placement is flat: the placer only minimizes wire length and knows nothing about lanes, and every lane also wires to the shared fetch, scheduler and load/store unit, which pulls its edges inward. Equal tiles would take a hierarchical flow: one lane hardened as a macro and placed on a grid, as in the tiled systolic array."
   },
   {
     "tab": "GPU 250 µm",
