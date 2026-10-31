@@ -177,7 +177,7 @@ pytest tb/test_soc.py                        # C programs on the SoC (slow: Icar
 
 ## How this was built
 
-The code was written by Claude (Anthropic's AI model) during Rayan's
-hardware sprint, under Rayan's direction. Rayan's own work in this
-repository will be listed here as it happens. The sprint's gates (study
-questions Rayan answers before each step) are tracked outside this repo.
+The code was written with Claude Code (Anthropic's AI coding agent) under
+Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
+which trade-offs to take; Claude wrote the code and ran the tools. Every
+number here comes from a script or log in this folder.
