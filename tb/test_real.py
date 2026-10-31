@@ -63,6 +63,52 @@ async def test_real_layer(dut):
     eng.finish(f"layer {n}")
 
 
+@cocotb.test()
+async def test_real_point(dut):
+    """One real matrix, decoded with this build's (L, code bits, tile base)
+    and on the raw bypass, against the memory model's bandwidth budget
+    (Phase 7 sweep). EW_MAT picks the projection of layer EW_LAYER."""
+    from test_top import CODE_BITS, F3_EW_STAT, L, ST_ESCAPES, ST_STALL_DATA, ST_STALL_ESC, TILE_BASE
+    n = int(os.environ.get("EW_LAYER", "21"))
+    want = os.environ.get("EW_MAT", "q_proj")
+    w = dict(layer(n))[want]
+    rng = np.random.default_rng(n)
+    x = synthetic_bf16(1, w.shape[1], rng, std=1.0)[0]
+    img = Image()
+    jd = img.add_job(w, x, code_bits=CODE_BITS, tile_base=TILE_BASE)
+    jr = img.add_job(w, x, bypass=True)
+    assert img.next <= 8 * int(dut.u_mem.WORDS.value), "matrix doesn't fit the testbench DRAM"
+    eng = Engine(dut)
+    await eng.reset()
+    await eng.load(img)
+    cd = await eng.run_job(jd)
+    st = {k: await eng.cmd(F3_EW_STAT, k) for k in (ST_STALL_ESC, ST_STALL_DATA, ST_ESCAPES)}
+    await eng.check_y(jd, f"{want} decoded")
+    cr = await eng.run_job(jr)
+    await eng.check_y(jr, f"{want} raw")
+    eng.finish(f"layer {n} {want}")
+    bits = jd.enc.bits_per_weight()
+    line = (f"layer={n} mat={want} L={L} code_bits={CODE_BITS} tile_base={int(TILE_BASE)} "
+            f"bits={bits:.4f} decoded_cycles={cd} raw_cycles={cr} speedup={cr / cd:.4f} "
+            f"ceiling={16 / bits:.4f} stall_esc={st[ST_STALL_ESC]} stall_data={st[ST_STALL_DATA]} "
+            f"escapes={st[ST_ESCAPES]}")
+    dut._log.info("SIMULATED, real weights: " + line)
+    Path(os.environ.get("EW_PERF_OUT", "perf.txt")).write_text(line + "\n")
+
+
+@pytest.mark.parametrize("L_,code_bits,tile_base", [(8, 2, 0), (8, 3, 0), (8, 4, 0), (8, 3, 1), (4, 3, 0), (16, 3, 0)])
+@pytest.mark.parametrize("mat", ["q_proj", "up_proj"])
+def test_sweep(L_, code_bits, tile_base, mat):
+    """Phase 7 points. Bandwidth budget L bytes/cycle: half of what raw BF16
+    needs at that L, so both modes are memory-bound at every point."""
+    if not list(WEIGHTS.glob("*.safetensors")):
+        pytest.skip("no model in analysis/weights (run analysis/measure.py)")
+    from test_top import _run
+    _run(f"sweep_L{L_}_b{code_bits}_tb{tile_base}_{mat}", L_=L_, code_bits=code_bits, tile_base=tile_base,
+         bw=(L_, 1), module="test_real", testcase="test_real_point", env={"EW_MAT": mat},
+         mem_words=(1 << 22) if mat == "up_proj" else (1 << 20))
+
+
 def test_real():
     if not list(WEIGHTS.glob("*.safetensors")):
         pytest.skip("no model in analysis/weights (run analysis/measure.py)")

@@ -351,6 +351,20 @@ node spends far less per weight, so these savings are conservative.
 - Nsight Compute: blocked by Windows (ERR_NVGPUCTRPERM, GPU performance
   counters are admin-only until enabled in the NVIDIA Control Panel).
 
+## 2026-10-31 — functional coverage **[sim]**
+
+`tb/coverage.py`, sampled by the decode monitor in every engine test (and the
+CPU-driven tests): escapes per chunk 0..L, every code value on every lane,
+escapes at every chunk position in a tile, escape and data stalls, bypass
+chunks, the 8-bit window wrap, escaped exponents 0 and 255, back-to-back
+tiles, consecutive all-escape chunks. First pass missed data stalls in the
+b = 2 / b = 4 / per-tile builds and the wrap at L = 16 (those builds ran a
+subset of tests); added the bandwidth-limited cycle test to the first three
+and the edge-exponent test to L = 16. Regression `pytest tb/test_top.py
+tb/test_cpu.py`: 6/6 pass, **480/480 bins hit across all 5 builds** (L8 b3
+89, L8 b2 57, L8 b4 153, L8 b3 per-tile 24, L16 b3 157).
+`tb/coverage_report.txt`.
+
 ## Open (to do)
 
 Done: Phase 1, golden vs. PyTorch, GPU kernels on the 3060 Laptop, real-weight

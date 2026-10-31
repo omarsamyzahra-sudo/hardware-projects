@@ -26,6 +26,7 @@ from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge, Timer
 import golden
 from ewformat import TILE, synthetic_bf16
 from image import Image, read_hex, y_from_words
+from coverage import Coverage
 from runner import TB_TOP, run
 
 F3_EXP_BASE, F3_WSTREAM_CFG, F3_GEMV_RUN, F3_GEMV_WAIT, F3_DEC_BYPASS, F3_EW_STAT = range(6)
@@ -54,6 +55,7 @@ class Engine:
         self.expect = []          # decoded chunks the monitor should see, in order
         self.seen = 0
         self.errors = []
+        self.cov = Coverage(L, CODE_BITS, TILE_BASE)
 
     async def reset(self):
         d = self.dut
@@ -97,8 +99,11 @@ class Engine:
         while True:
             await FallingEdge(d.clk)
             await ReadOnly()
+            self.cov.cycle_sample(int(dec.stall_esc.value), int(dec.stall_data.value))
             if int(dec.out_valid.value) and int(dec.out_ready.value):
                 got = int(dec.out_w.value)
+                self.cov.chunk(got, int(dec.out_nesc.value), int(dec.j.value), int(dec.base.value),
+                               int(dec.bypass.value))
                 if self.seen >= len(self.expect):
                     self.errors.append(f"unexpected chunk #{self.seen}")
                 elif got != self.expect[self.seen]:
@@ -135,7 +140,7 @@ class Engine:
         await self.cmd(F3_DEC_BYPASS, int(job.bypass))
         self.expect.extend(chunks(job.w))
         h = await self.cmd(F3_GEMV_RUN, job.rows, job.cols)
-        return await self.cmd(F3_GEMV_WAIT, h)
+        return await self.cmd(F3_GEMV_WAIT, h, limit=20_000_000)   # big matrices at low bandwidth
 
     async def check_y(self, job, tag=""):
         words = await self.read_words(job.y_addr, (job.rows + 1) // 2)
@@ -148,6 +153,7 @@ class Engine:
                                f"want {golden.f32_bits(want[i]):08x} ({int((~ok).sum())} rows wrong)")
 
     def finish(self, tag=""):
+        self.cov.save(f"L{L}_b{CODE_BITS}_tb{int(TILE_BASE)}")
         if self.seen != len(self.expect):
             self.errors.append(f"{tag} saw {self.seen} chunks, expected {len(self.expect)}")
         assert not self.errors, "\n".join(self.errors[:20])
@@ -320,12 +326,14 @@ def test_top_default():
 def test_top_tile_base():
     _run("top_l8_b3_tile", tile_base=1, testcase="test_zero_escapes,test_escape_boundaries,test_back_to_back_and_bypass,test_random",
          env={"RAND_SEEDS": "40"})
+    _run("top_l8_b3_tile_bw8", tile_base=1, bw=(8, 1), testcase="test_cycles")   # data stalls
 
 
 def test_top_code_bits():
     for b in (2, 4):
         _run(f"top_l8_b{b}", code_bits=b, testcase="test_all_escaped,test_edge_exponents,test_random",
              env={"RAND_SEEDS": "30"})
+        _run(f"top_l8_b{b}_bw8", code_bits=b, bw=(8, 1), testcase="test_cycles")
 
 
 def test_top_bw_limited():
@@ -335,5 +343,5 @@ def test_top_bw_limited():
 
 
 def test_top_l16():
-    _run("top_l16_b3", L_=16, testcase="test_escape_boundaries,test_back_to_back_and_bypass,test_random",
+    _run("top_l16_b3", L_=16, testcase="test_escape_boundaries,test_edge_exponents,test_back_to_back_and_bypass,test_random",
          env={"RAND_SEEDS": "30"})
