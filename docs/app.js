@@ -43,10 +43,7 @@ function Hero() {
       <h1>Rayan<br/>Benaoussar</h1>
       <p class="lede">I build computers from the logic up: a <b>hardware decoder for compressed LLM weights</b>, a formally
         verified <b>RISC-V CPU</b>, an <b>int8 systolic-array accelerator</b>, a <b>SIMT GPU</b> and <b>CUDA kernels</b>, with the hardware
-        taken to <b>SkyWater 130 nm layouts</b>. Every number comes from a test, a tool report or a benchmark log in
-        the <a href=${REPO} target="_blank" rel="noopener">public repository</a>.</p>
-      <p class="disclose small">Built with Claude Code (Anthropic’s AI coding agent) under my direction: I chose what to build, what to
-        measure and which trade-offs to take; Claude wrote the code and ran the tools.</p>
+        taken to <b>SkyWater 130 nm layouts</b>.</p>
       <div class="cta">
         <a class="btn" href="#work">See the projects</a>
         <a class="btn-ghost" href=${REPO} target="_blank" rel="noopener">GitHub ↗</a>
@@ -331,7 +328,7 @@ function Nav({ open, go }) {
     <a href="#top" class="mark mono" aria-label="Home">RB<span>/</span>silicon</a>
     <div class="links">${PROJECTS.map((p) => html`<button class=${"navtab" + (p.id === open ? " on" : "")} style=${{ "--lc": p.c }}
         onClick=${() => go(p.id, true)}>${p.name}</button>`)}
-      <a href="#contact" class="btn-sm">Contact</a></div>
+      <a href=${`mailto:${EMAIL}`} class="btn-sm">Contact</a></div>
   </nav>`;
 }
 
@@ -352,19 +349,6 @@ function App() {
     <a class="skip" href="#work">Skip to content</a>
     <${Nav} open=${open} go=${go}/><${Hero}/>
     <${Work} open=${open} go=${go}/>
-    <footer id="contact" class="wrap foot">
-      <h2>Looking for a Summer 2027 internship<br/>in chip design, verification or GPU architecture.</h2>
-      <div class="cta">
-        <a class="btn" href=${`mailto:${EMAIL}`}>${EMAIL}</a>
-        <a class="btn-ghost" href=${REPO} target="_blank" rel="noopener">GitHub ↗</a>
-      </div>
-      <p class="honest">Built with Claude Code (Anthropic’s AI coding agent) under my direction: I chose what to build, what to measure
-        and which trade-offs to take; Claude wrote the code and ran the tools. Every number comes from a simulation, a tool report or a
-        benchmark log in the <a href=${REPO} target="_blank" rel="noopener">repository</a>, tagged <${Tag} k="measured"/> on real
-        hardware, <${Tag} k="sim"/> in simulation, or <${Tag} k="layout"/> / <${Tag} k="estimate"/> from layout tools and models. The layouts are
-        SkyWater 130 nm open-PDK layouts, not fabricated chips, and there are no FPGA results.</p>
-      <p class="small dim mono">Rayan Benaoussar · Jacksonville, FL · Built with React and three.js; the die images are KLayout renders of my GDS files.</p>
-    </footer>
   <//>`;
 }
 

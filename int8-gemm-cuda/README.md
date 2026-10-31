@@ -85,10 +85,3 @@ python bench.py 3         :: 3 runs + clock log -> results\summary.csv, roofline
 ```
 
 `build\gemm.exe --kernel NAME M N K` runs one kernel (for profiling).
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. Every
-number here comes from a script or log in this folder.

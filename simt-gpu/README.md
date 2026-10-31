@@ -103,10 +103,3 @@ units, 32-thread warps and dozens of resident warps per SM, and, since
 NVIDIA Volta, independent thread scheduling. That last one fixes a deadlock
 this design keeps on purpose: one thread spinning while it waits on another
 thread in the same warp.
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. Every
-number here comes from a script or log in this folder.

@@ -82,10 +82,3 @@ riscv-test fails, its disassembly is in `tests/build/rv32ui-p-<name>.dump`.
 
 Toolchain: Icarus Verilog, Yosys + yosys-slang, SymbiYosys + bitwuzla (OSS CAD Suite), cocotb 2.1, xPack
 `riscv-none-elf-gcc` 15.2.
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. Every
-number here comes from a script or log in this folder.

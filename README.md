@@ -26,21 +26,8 @@ SKY130 layouts (LibreLane / OpenROAD; typical / slow corner):
 | Decoder engine (whole) | layout running | | |
 | SIMT GPU core | layout running | | |
 
-## What these numbers are
-
-Every number comes from a script, test or tool log in the project's folder, and
-is labeled where it appears: **measured** on real hardware (an RTX 3060 Laptop
-GPU, real model weights), **sim** from RTL or gate-level simulation, or
-**estimate** from layout tools and models. The layouts are open-PDK layouts,
-not fabricated chips, and there are no FPGA results yet.
+## Shared code
 
 `systolic-accel/riscv-core` and `simt-gpu/riscv-core` are pinned copies of
 `riscv-core` at commit 48a8279, the version those projects were built against.
 `ew-decoder/rtl/cpu` is a copy of the same commit with a coprocessor port added.
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. The commit
-history is kept as it was, co-author trailers included.

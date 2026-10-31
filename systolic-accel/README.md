@@ -172,10 +172,3 @@ pytest tb/test_array.py tb/test_accel.py     # cocotb, ~20 s
 python model/mnist.py                        # train + quantize + export sw/mnist_data.h
 pytest tb/test_soc.py                        # C programs on the SoC (slow: Icarus, ~2k cycles/s)
 ```
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. Every
-number here comes from a script or log in this folder.

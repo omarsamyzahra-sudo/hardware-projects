@@ -24,8 +24,7 @@ Design: `docs/ARCH.md`. Every decision and number: `LEDGER.md`.
   the rewrite reaches 1.03–1.05× raw BF16 wall clock [measured]
 
 Prior art: the format is ZipServ's TCA-TBE (base + 3-bit offset + escapes).
-Related hardware decoders are listed in `BRIEF.md`. No FPGA or silicon
-results: everything hardware-side is simulation or layout estimates.
+Related hardware decoders are listed in `BRIEF.md`.
 
 ## Layout
 
@@ -89,10 +88,3 @@ counts (labeled [sim, synthetic] in LEDGER.md).
 - FPGA: no board yet, so no achieved DRAM bandwidth, board power or clock.
 - Batch > 1 and the KV cache: both read activations this format does not
   compress.
-
-## How this was built
-
-The code was written with Claude Code (Anthropic's AI coding agent) under
-Rayan Benaoussar's direction: Rayan chose what to build, what to measure and
-which trade-offs to take; Claude wrote the code and ran the tools. Every
-number here comes from a script or log in this folder.
