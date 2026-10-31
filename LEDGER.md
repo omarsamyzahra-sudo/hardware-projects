@@ -280,8 +280,9 @@ it's ~19× slower. A decoder fused into the matmul (the RTL, or
    and measured on the 3060 Laptop.
 2. ~~Real-weight layer through the RTL~~ done (layer 21, both modes).
 3. ~~10,000 seeds~~ done. cocotb under Verilator; coverage report.
-4. RTX 3080: `gpu/build.bat`, `python gpu/prep.py`, `gpu/build/ewgemv.exe gpu/data`;
-   Nsight Compute on `gemv_ew` to see what it's bound by.
+4. ~~RTX 3080 rerun~~ dropped (2026-10-31, Rayan): the 3060 Laptop numbers
+   are the GPU baseline. Optional: Nsight Compute on `gemv_ew` (installed on
+   the laptop) to see what it's bound by.
 5. Vivado synth/impl/power + Fmax (needs a license tier that covers
    2026.1.1, or an older free-tier release); datasheet numbers for ARCH §2.1.
    Yosys estimates are in `fpga/yosys/`.
