@@ -1,0 +1,27 @@
+
+4. Printing statistics.
+
+=== axi_rd_stream ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      530 wires
+     1185 wire bits
+       35 public wires
+      475 public wire bits
+       21 ports
+      251 port bits
+      626 cells
+        1   BUFG
+       32   CARRY4
+      137   FDRE
+      138   IBUF
+       36   INV
+       46   LUT2
+        8   LUT3
+       13   LUT4
+       43   LUT5
+       49   LUT6
+      113   OBUF
+       10   RAM64M8
+

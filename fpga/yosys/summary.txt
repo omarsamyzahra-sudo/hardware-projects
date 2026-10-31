@@ -1,0 +1,16 @@
+Yosys 0.70+145 + yosys-slang, synth_xilinx, each block synthesized on its own
+(module defaults = ew_top build: L=8, 3-bit codes, per-matrix base, KMAX=4864)
+
+family block            LUT    FF   DSP  CARRY  BRAM36
+xcup   ew_top (all)    6201  2523    10    609   4
+xcup   weight_decoder   979   524     0     25   0
+xcup   gemv_core       4064   772     8    340   4
+xcup   ew_ctrl          446   461     2     65   0
+xcup   axi_rd_stream    159   137     0     32   0   (one port; 5 in ew_top)
+xcup   ew_lane           12     0     0      2   0   (one lane; 8 in the decoder)
+xc7    ew_top (all)    6361  2521    11    611   4
+xc7    weight_decoder   979   524     0     25   0
+xc7    gemv_core       4165   772     8    342   4
+xc7    ew_ctrl          418   461     3     65   0
+xc7    axi_rd_stream    159   137     0     32   0
+xc7    ew_lane           12     0     0      2   0

@@ -8,9 +8,10 @@ contribution is the hardware decoder, the ISA interface, and hardware-only
 variants (per-tile bases, other window widths). Full spec: `BRIEF.md`.
 Design: `docs/ARCH.md`. Every decision and number: `LEDGER.md`.
 
-**Status (2026-10-30):** engine RTL + CPU integration built and verified in
-simulation on synthetic weights. Nothing measured on real weights or
-hardware yet; that's the home-PC list below.
+**Status (2026-10-30):** engine RTL + CPU integration verified in simulation;
+Phase 1 measured on Qwen2.5-0.5B (11.225 bits/weight); GPU baseline measured
+on an RTX 3060 Laptop; Yosys resource estimates. Open items are in
+LEDGER.md under "Open — home PC".
 
 ## Layout
 
@@ -50,6 +51,11 @@ pytest tb/test_top.py                      # engine: 6 builds, 21 tests (~3 min)
 pytest tb/test_cpu.py                      # riscv-core + C driver + engine (~30 s)
 RAND_SEEDS=10000 pytest tb/test_top.py -k default   # the brief's 10k seeds (hours)
 python analysis/measure.py                 # Phase 1 on Qwen2.5-0.5B (downloads ~1 GB)
+python analysis/golden_vs_torch.py         # golden.py vs. PyTorch on real layers
+pytest tb/test_real.py -s                  # a real layer through the RTL (EW_LAYER=21)
+python gpu/prep.py && gpu/build.bat && gpu/build/ewgemv.exe gpu/data   # GPU baseline
+yosys -m slang -s fpga/yosys/synth.ys      # resource estimate
+PERL5LIB=tools/perl5 verilator --lint-only --top-module ew_top rtl/*.sv
 ```
 
 `sim_build/top_l8_b3*/perf.txt` hold the simulated decoded-vs-raw cycle

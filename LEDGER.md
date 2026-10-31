@@ -176,6 +176,41 @@ run with only G = 8 gave 0.84×, which is why lane width became a parameter
 for both kernels. Laptop clocks vary with power and heat; the 3080 run
 should log `nvidia-smi` clocks the same way (`gpu/results/`).
 
+## 2026-10-30 — resource estimate (Yosys) **[synthesis estimate, not Vivado]**
+
+Vivado 2026.1.1 is installed on the laptop but refuses to start ("installed
+version is not supported with your selected license tier"), so the numbers
+below are Yosys `synth_xilinx` cell counts (`fpga/yosys/`), each block
+synthesized alone with the ew_top defaults. Yosys maps differently from
+Vivado; treat these as estimates until Vivado runs. No Fmax yet.
+
+| block | LUT | FF | DSP | BRAM36 |
+|---|---|---|---|---|
+| whole engine (UltraScale+, KV260 family) | 6,201 | 2,523 | 10 | 4 |
+| **weight_decoder** (8 lanes, escape window, tile regs, bypass mux) | **979** | **524** | **0** | **0** |
+| one ew_lane | 12 | 0 | 0 | 0 |
+| gemv_core (8 multipliers, adder tree, accumulator, x buffer) | 4,064 | 772 | 8 | 4 |
+| one AXI read port | 159 | 137 | 0 | 0 |
+| whole engine (Artix-7, Arty family) | 6,361 | 2,521 | 11 | 4 |
+
+Decoder = 15.8% of the engine's LUTs and 0 BRAM/DSP (brief target met on
+BRAM). The decoded path also needs the code and escape read ports (~2 × 159
+LUT) that a raw-only design wouldn't. Most of the decoder isn't the lanes
+(8 × 12 = 96 LUT) but the escape byte window + prefix popcount and the
+tile staging registers.
+
+## 2026-10-30 — Verilator lint
+
+oss-cad-suite's `verilator` wrapper failed in Git Bash only because Git's
+perl lacks `Pod::Usage` (used for `--help`); `tools/perl5/Pod/Usage.pm` is a
+stand-in, used with `PERL5LIB=tools/perl5`. Verilator 5.053 default lint on
+the engine found 20 implicit width widenings (warnings are fatal by default),
+all fixed with explicit casts, no behavior change: regression rerun after,
+all pass. The vendored CPU was already clean. Left under `-Wall`: one
+unconnected FIFO ready pin, `import *` in two files, the unused upper half of
+an x word, and an unused opcode constant. Running the cocotb tests under
+Verilator needs a C++ toolchain set up for it on Windows: home PC.
+
 ## Open — home PC
 
 1. ~~Phase 1~~ done. ~~golden vs. PyTorch~~ done. ~~GPU kernels~~ written
@@ -183,7 +218,9 @@ should log `nvidia-smi` clocks the same way (`gpu/results/`).
 2. Real-weight layer through the RTL: `tb/test_real.py` (results below
    when the run finishes).
 3. 10,000 random seeds (running on the laptop; rerun at home if the reset
-   interrupts it); Verilator build; coverage report.
+   interrupts it); cocotb under Verilator; coverage report.
 4. RTX 3080: `gpu/build.bat`, `python gpu/prep.py`, `gpu/build/ewgemv.exe gpu/data`;
    Nsight Compute on `gemv_ew` to see what it's bound by.
-5. Vivado synth/impl/power, datasheet numbers for ARCH §2.1.
+5. Vivado synth/impl/power + Fmax (needs a license tier that covers
+   2026.1.1, or an older free-tier release); datasheet numbers for ARCH §2.1.
+   Yosys estimates are in `fpga/yosys/`.

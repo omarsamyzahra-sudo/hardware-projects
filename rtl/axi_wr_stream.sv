@@ -91,7 +91,7 @@ module axi_wr_stream #(
                 end
                 default: state <= S_IDLE;
             endcase
-            bout <= bout + ((w_hs && wlast) ? 1'b1 : 1'b0) - (bvalid ? 1'b1 : 1'b0);
+            bout <= bout + 8'(w_hs && wlast) - 8'(bvalid);
         end
     end
 

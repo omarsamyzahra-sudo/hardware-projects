@@ -53,7 +53,8 @@ module axi_rd_stream #(
     logic [31:0]                 remain;
     logic [AW-1:0]               next_addr;
     logic [CW-1:0]               reserved;       // beats asked for, not yet arrived
-    logic [$clog2(MAX_OUT+1):0]  outstanding;    // bursts asked for, last beat not yet arrived
+    localparam int OW = $clog2(MAX_OUT + 1) + 1;
+    logic [OW-1:0]               outstanding;    // bursts asked for, last beat not yet arrived
     logic [$clog2(FIFO_DEPTH):0] fcount;
     logic [31:0]                 blen;
     logic                        issue, r_hs, fifo_in_ready;
@@ -64,7 +65,7 @@ module axi_rd_stream #(
     assign r_hs    = rvalid;
 
     assign blen  = (remain > MAX_BURST) ? MAX_BURST : remain;
-    assign issue = !start && !arvalid && (remain != 0) && (outstanding < MAX_OUT)
+    assign issue = !start && !arvalid && (remain != 0) && (32'(outstanding) < MAX_OUT)
                    && (32'(fcount) + 32'(reserved) + blen <= FIFO_DEPTH);
 
     assign busy = (remain != 0) || arvalid || (outstanding != 0);
@@ -89,7 +90,7 @@ module axi_rd_stream #(
                 next_addr <= next_addr + AW'(blen * (DW / 8));
             end
             reserved    <= reserved + (issue ? CW'(blen) : '0) - (r_hs ? CW'(1) : '0);
-            outstanding <= outstanding + (issue ? 1'b1 : 1'b0) - ((r_hs && rlast) ? 1'b1 : 1'b0);
+            outstanding <= outstanding + OW'(issue) - OW'(r_hs && rlast);
         end
     end
 

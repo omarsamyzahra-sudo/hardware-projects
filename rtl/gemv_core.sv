@@ -169,7 +169,7 @@ module gemv_core #(
 
             // SA
             if (lv_v[LG]) acc <= acc_n;
-            inflight <= inflight + ((fire && row_first) ? 1'b1 : 1'b0) - (y_push ? 1'b1 : 1'b0);
+            inflight <= inflight + YCW'(fire && row_first) - YCW'(y_push);
         end
     end
 

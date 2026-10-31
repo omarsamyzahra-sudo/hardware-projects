@@ -81,8 +81,8 @@ module weight_decoder #(
     logic        take_base;
 
     logic stg_full, last_chunk, load_cur;
-    assign stg_full   = (stg_cnt == CODE_BITS) && (PER_TILE_BASE == 0 || stg_has_base);
-    assign code_ready = !bypass && (stg_cnt < CODE_BITS);
+    assign stg_full   = (32'(stg_cnt) == CODE_BITS) && (PER_TILE_BASE == 0 || stg_has_base);
+    assign code_ready = !bypass && (32'(stg_cnt) < CODE_BITS);
     assign take_base  = (PER_TILE_BASE != 0) && !bypass && !stg_has_base && (tbn != 0);
     assign tb_ready   = (PER_TILE_BASE != 0) && !bypass && (tbn == 0);
     assign last_chunk = (j == JW'(CHUNKS - 1));

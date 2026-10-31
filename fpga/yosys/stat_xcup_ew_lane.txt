@@ -1,0 +1,20 @@
+
+4. Printing statistics.
+
+=== ew_lane ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       50 wires
+      109 wire bits
+        6 public wires
+       44 public wire bits
+        6 ports
+       44 port bits
+       58 cells
+        2   CARRY4
+       27   IBUF
+        3   LUT2
+        9   LUT3
+       17   OBUF
+
