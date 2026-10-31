@@ -1,0 +1,24 @@
+{
+    "DESIGN_NAME": "simt_core",
+    "VERILOG_FILES": [
+        "dir::../riscv-core/rtl/rv32i_pkg.sv",
+        "dir::../riscv-core/rtl/alu.sv",
+        "dir::../riscv-core/rtl/branch_unit.sv",
+        "dir::../riscv-core/rtl/decoder.sv",
+        "dir::../riscv-core/rtl/immgen.sv",
+        "dir::../rtl/gpu_pkg.sv",
+        "dir::../rtl/lsu.sv",
+        "dir::../rtl/simt_core.sv"
+    ],
+    "USE_SLANG": true,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "SYNTH_STRATEGY": "AREA 0",
+    "FP_SIZING": "relative",
+    "FP_CORE_UTIL": 45,
+    "STA_CORNERS": ["nom_tt_025C_1v80", "nom_ss_100C_1v60", "nom_ff_n40C_1v95"],
+    "STA_MAX_VIOLATOR_COUNT": 100,
+    "RUN_POST_CTS_RESIZER_TIMING": false,
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd"
+}
