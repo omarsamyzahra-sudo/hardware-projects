@@ -3,6 +3,7 @@
 // than playing a canned animation, and every number shown is from the repos.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import htm from "htm";
+import { DEEP } from "./deepzoom.js";
 const html = htm.bind(React.createElement);
 
 const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -288,11 +289,72 @@ export function Roofline() {
   </div>`;
 }
 
-// ---------------------------------------------------------------- die explorer with a loupe
+// ---------------------------------------------------------------- deep zoom (OpenSeadragon on a tile pyramid)
+let osdLoad;
+const loadOSD = () => osdLoad ||= new Promise((ok, fail) => {
+  const s = document.createElement("script");
+  s.src = "vendor/openseadragon.min.js"; s.onload = () => ok(window.OpenSeadragon); s.onerror = fail;
+  document.head.append(s);
+});
+const tileSource = (t) => ({ width: t.w, height: t.h, tileSize: 1024, tileOverlap: 0,
+  getTileUrl: (level, x, y) => `${t.dir}/${level}/${x}_${y}.webp` });
+
+function DeepZoom({ d, alt }) {
+  const box = useRef(null), viewer = useRef(null);
+  const [scale, setScale] = useState(null), [live, setLive] = useState(false), [hint, setHint] = useState(false);
+  useEffect(() => {
+    let v, gone = false;
+    loadOSD().then((OSD) => {
+      if (gone) return;
+      // the base image spans viewport x 0..1; overlays (the tiled TPU's 64 PEs) sit by their µm position
+      const W = d.um[0], H = d.um[1];
+      v = viewer.current = OSD({
+        element: box.current.querySelector(".dz-canvas"),
+        tileSources: [{ tileSource: tileSource(d), x: 0, y: 0, width: 1 },
+          ...(d.items || []).map((it) => ({ tileSource: tileSource(it), x: it.x / W, y: (H - it.y - it.um[1]) / W, width: it.um[0] / W }))],
+        showNavigationControl: false, showNavigator: true, navigatorPosition: "BOTTOM_RIGHT", navigatorAutoFade: false,
+        navigatorSizeRatio: 0.16, navigatorBackground: "#000", navigatorBorderColor: "#2a3548", navigatorDisplayRegionColor: "#4fd1e8",
+        maxZoomPixelRatio: 2, visibilityRatio: 0.6, constrainDuringPan: true, animationTime: 0.9,
+        gestureSettingsMouse: { scrollToZoom: false, clickToZoom: false, dblClickToZoom: true },
+      });
+      const um = () => {                              // µm per screen pixel → a 1/2/5 scale bar
+        const px = v.viewport.deltaPixelsFromPointsNoRotate(new OSD.Point(1, 0), true).x;
+        const per = W / px;
+        let n = 10 ** Math.floor(Math.log10(per * 110));
+        for (const k of [5, 2]) if (k * n <= per * 110) { n *= k; break; }
+        setScale({ w: Math.round(n / per), t: n >= 1000 ? `${n / 1000} mm` : n >= 1 ? `${n} µm` : `${Math.round(n * 1000)} nm` });
+      };
+      v.addHandler("animation", um); v.addHandler("open", um); v.addHandler("resize", um);
+      // the wheel scrolls the page until the die is clicked, so the long page never gets stuck in it
+      v.addHandler("canvas-press", () => { v.gestureSettingsMouse.scrollToZoom = true; setLive(true); setHint(false); });
+      let t;
+      v.addHandler("canvas-scroll", (e) => {
+        if (v.gestureSettingsMouse.scrollToZoom) return;
+        e.preventDefault = false;
+        setHint(true); clearTimeout(t); t = setTimeout(() => setHint(false), 1400);
+      });
+    });
+    return () => { gone = true; v && v.destroy(); viewer.current = null; };
+  }, [d]);
+  const leave = () => { const v = viewer.current; if (v) v.gestureSettingsMouse.scrollToZoom = false; setLive(false); setHint(false); };
+  const act = (f) => () => { const v = viewer.current; if (v) f(v); };
+  return html`<div class=${"dz" + (live ? " live" : "")} ref=${box} onPointerLeave=${leave} role="img" aria-label=${alt}>
+    <div class="dz-canvas"></div>
+    <div class="dz-hud">
+      <button type="button" aria-label="Zoom in" onClick=${act((v) => v.viewport.zoomBy(2))}>+</button>
+      <button type="button" aria-label="Zoom out" onClick=${act((v) => v.viewport.zoomBy(0.5))}>−</button>
+      <button type="button" aria-label="Whole die" onClick=${act((v) => v.viewport.goHome())}>⤢</button>
+    </div>
+    ${hint ? html`<div class="dz-hint">Click the die, then scroll to zoom</div>` : null}
+    ${scale ? html`<div class="dz-scale mono">${scale.t}<i style=${{ width: scale.w + "px" }}></i></div>` : null}
+  </div>`;
+}
+
+// ---------------------------------------------------------------- die explorer: deep zoom, or a loupe on a flat render
 export function DieExplorer({ shots }) {
   const [sel, setSel] = useState(0);
   const [lens, setLens] = useState(null);
-  const s = shots[sel];
+  const s = shots[sel], deep = DEEP[s.src];
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
@@ -303,17 +365,19 @@ export function DieExplorer({ shots }) {
     <div class="tabs" role="tablist">${shots.map((d, i) => html`<button role="tab" aria-selected=${i === sel}
       class=${i === sel ? "on" : ""} onClick=${() => { setSel(i); setLens(null); }}>${d.tab}</button>`)}</div>
     <div class="die-stage">
-      <div class="die-img" onPointerMove=${onMove} onPointerLeave=${() => setLens(null)}>
+      ${deep ? html`<${DeepZoom} key=${s.src} d=${deep} alt=${s.alt}/>` : html`<div class="die-img" onPointerMove=${onMove} onPointerLeave=${() => setLens(null)}>
         <img src=${s.src} alt=${s.alt} loading="lazy" decoding="async"/>
         ${lens ? html`<div class="loupe" style=${{ left: lens.x + "px", top: lens.y + "px",
           backgroundImage: `url(${s.src})`, backgroundPosition: `${lens.px * 100}% ${lens.py * 100}%` }}></div>` : null}
         ${s.labels ? s.labels.map((l) => html`<span class="die-label mono" style=${{ left: l.x + "%", top: l.y + "%", "--lc": l.c }}>${l.t}</span>`) : null}
-      </div>
+      </div>`}
       <div class="die-meta">
         <h4>${s.title}</h4>
         <p class="dim">${s.desc}</p>
         ${s.specs ? html`<dl>${s.specs.map(([k, v]) => html`<div><dt>${k}</dt><dd class="mono">${v}</dd></div>`)}</dl>` : null}
-        <p class="small dim">Hover the image for a loupe.</p>
+        <p class="small dim">${deep
+          ? `Click the die, then scroll or pinch to zoom down to ${deep.reach}; drag to pan, double-click to zoom in.`
+          : "Hover the image for a loupe."}</p>
       </div>
     </div>
   </div>`;

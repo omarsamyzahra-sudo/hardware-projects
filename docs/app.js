@@ -123,9 +123,13 @@ function Viewer3D() {
   </div>`;
 }
 
+// fixed-window close-ups the make_die scripts still emit; the deep-zoom tabs replace them
+const CLOSEUPS = new Set(["assets/ew_decoder_closeup.jpg", "assets/gpu_mid.jpg"]);
+
 // the SKY130 runs for one project: a row each, then the KLayout renders
 function Layout({ designs, shots, children }) {
   const rows = LAYOUTS.filter((l) => designs.includes(l.design));
+  shots = shots.filter((s) => !CLOSEUPS.has(s.src));
   return html`<div class="layout-part">
     <h3 class="part-h"><i class="sw"></i>Layout on SkyWater 130 nm</h3>
     <div class="lt-wrap"><table class="lt">
@@ -149,12 +153,6 @@ const TPU_DIE = [
   { tab: "Flat array", src: "assets/tpu_die_flat.jpg", alt: "Flat-placed layout of the systolic array",
     title: "Same RTL, flat placement", desc: "The first run let the placer scatter all 64 PEs together. Smaller, but slower: long wires failed 50 MHz at the slow corner. Going hierarchical fixed it, which is the point of comparing both.",
     specs: [["die", "1.89 mm²"], ["cells", "108,707"], ["fmax (tt / ss)", "~84 / ~43 MHz"], ["DRC · LVS · antenna", "0 · 0 · 1"]] },
-  { tab: "Array 250 µm", src: "assets/tpu_mid.jpg", alt: "250 micrometer window of the tiled array",
-    title: "Zoom: PE macros and routing channels", desc: "A 250 µm window of the tiled layout: PE macros, the routing channels between them, and the met4/met5 power straps.",
-    specs: [["metal", "met1–met5"], ["PE macro", "180 × 180 µm, 1,865 cells"], ["pitch", "220 µm"]] },
-  { tab: "Array 60 µm", src: "assets/tpu_closeup.jpg", alt: "60 micrometer close-up of standard cells in SKY130 layer colors",
-    title: "Zoom: standard cells", desc: "60 µm across, in the SkyWater layer colors: rows of standard cells, poly gates, local interconnect and the first metal layers.",
-    specs: [["PDK", "SKY130A"], ["library", "sky130_fd_sc_hd"]] },
 ];
 
 function EwDetail() {
