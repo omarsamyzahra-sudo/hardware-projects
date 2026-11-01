@@ -8,7 +8,6 @@
 // centres carry it from one to the next. In the real pipeline every block is busy every cycle; the wave and
 // the arcs are for the eye. Data: assets/hero_engine.json + .bin (ew-decoder/openlane/build_hero_engine.py).
 import * as THREE from "./vendor/three-hero.js";   // three.js 0.160, the parts used here, bundled (vendor/three-hero.src.js)
-import { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } from "./vendor/three-hero.js";
 
 const UM = 2 / 2780;                 // scene units per micron: the 2.8 mm die is ~2 units wide
 const PERIOD = 6;                    // seconds per trip through the engine
@@ -58,9 +57,14 @@ void main() {
   vColor = c * shade * (0.75 + 0.5 * aWave.y) + mix(c, vec3(1.0), 0.12) * a * 0.6;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }`;
+// no post-processing (a bloom pass cost more than the scene on laptop GPUs): tone mapping and sRGB per fragment
 const FLAT_FRAG = /* glsl */ `
 varying vec3 vColor;
-void main() { gl_FragColor = vec4(vColor, 1.0); }`;
+void main() {
+  gl_FragColor = vec4(vColor, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
 
 // an arc: faint all the time, with a bright packet that leaves when the wave leaves its source block and
 // lands when the wave reaches the destination
@@ -79,7 +83,9 @@ void main() {
   float d = head - s;
   float packet = (exp(-d * d * 220.0) + step(0.0, d) * exp(-d * 5.0) * 0.35) * on;
   vec3 c = mix(c0, c1, s);
-  gl_FragColor = vec4(c * (0.09 + packet * 1.3), 1.0);
+  gl_FragColor = vec4(c * (0.09 + packet * 1.6), 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }`;
 
 export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
@@ -89,7 +95,8 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
   } catch (e) {
     return null;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  let ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+  renderer.setPixelRatio(ratio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const scene = new THREE.Scene();
@@ -190,20 +197,12 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
     rig.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 128, 0.0055, 8, false), mat));
   }
 
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.3, 0.6, 0.85);
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-
   let w = 0, h = 0, wide = true;
   function resize() {
     const rc = canvas.getBoundingClientRect();
     w = Math.max(1, rc.width); h = Math.max(1, rc.height);
     wide = w / h > 1.15;
     renderer.setSize(w, h, false);
-    composer.setSize(w, h);
-    bloom.resolution.set(w / 2, h / 2);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -216,6 +215,7 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
   window.addEventListener("pointermove", onMove, { passive: true });
 
   let raf = 0, visible = true, t0 = performance.now(), first = true;
+  let last = 0, slow = 0, frames = 0;           // a GPU that can't keep ~40 fps gets fewer pixels
   const iob = new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible && !raf) raf = requestAnimationFrame(frame); });
   iob.observe(canvas);
 
@@ -231,8 +231,14 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
     camera.position.set(0, Math.sin(el) * dist, Math.cos(el) * dist);
     camera.lookAt(0, 0, 0);
     camera.setViewOffset(w, h, wide ? -w * 0.24 : 0, wide ? h * 0.06 : h * 0.27, w, h);
-    composer.render();
+    renderer.render(scene, camera);
     if (first) { first = false; onReady && onReady(); }
+    if (last && now - last < 250) { frames++; if (now - last > 25) slow++; }
+    last = now;
+    if (frames === 45) {
+      if (slow > 22 && ratio > 0.55) { ratio *= 0.75; renderer.setPixelRatio(ratio); resize(); }
+      frames = slow = 0;
+    }
     if (visible && !reducedMotion) raf = requestAnimationFrame(frame);
   }
   frame(performance.now());          // first frame now, not a frame later
