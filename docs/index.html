@@ -15,8 +15,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="preload" href="assets/hero_engine.json" as="fetch" crossorigin>
 <link rel="preload" href="assets/hero_engine.bin" as="fetch" crossorigin>
-<link rel="modulepreload" href="hero_engine.js">
-<link rel="modulepreload" href="vendor/three-hero.js">
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
 {
@@ -27,6 +25,9 @@
   }
 }
 </script>
+<!-- after the import map: a module load started before it makes older browsers ignore the map -->
+<link rel="modulepreload" href="hero_engine.js">
+<link rel="modulepreload" href="vendor/three-hero.js">
 </head>
 <body>
 <div id="root"></div>
