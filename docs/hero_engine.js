@@ -11,6 +11,8 @@ import * as THREE from "./vendor/three-hero.js";   // three.js 0.160, the parts 
 
 const UM = 2 / 2780;                 // scene units per micron: the 2.8 mm die is ~2 units wide
 const PERIOD = 6;                    // seconds per trip through the engine
+export const POSTER_PAD = 1.5;       // the poster's height over the hero height it was framed for
+const START = 0.45 * PERIOD;         // the first frame (and the poster, and the reduced-motion still): mid-wave
 const RISE = 0.35;                   // seconds a column takes to brighten
 const HMAX = 0.13;                   // tallest column, scene units
 const MERGE = 2;                     // columns are MERGE x MERGE bins, so gaps between them show
@@ -88,15 +90,18 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
+// poster: render only the first frame, centred and on a transparent background, for assets/hero_engine_poster.webp
+// (hero_poster.html); the page shows that image until the live first frame, which matches it, fades in over it
+export function mountEngine(canvas, { head, buf, reducedMotion, onReady, poster = false }) {
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: poster, preserveDrawingBuffer: poster, powerPreference: "high-performance" });
   } catch (e) {
     return null;
   }
   let ratio = Math.min(window.devicePixelRatio || 1, 1.5);
   renderer.setPixelRatio(ratio);
+  if (poster) renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const scene = new THREE.Scene();
@@ -222,15 +227,21 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
   function frame(now) {
     raf = 0;
     const t = (now - t0) / 1000;
-    uniforms.t.value = reducedMotion ? 0.45 * PERIOD : t;
+    uniforms.t.value = START + (reducedMotion || poster ? 0 : t);
     cur.x += (pointer.x - cur.x) * 0.05;
     cur.y += (pointer.y - cur.y) * 0.05;
-    rig.rotation.y = -0.5 + cur.x * 0.3 + (reducedMotion ? 0 : Math.sin(t * 0.13) * 0.08);
+    rig.rotation.y = -0.5 + cur.x * 0.3 + Math.sin((reducedMotion || poster ? 0 : t) * 0.13) * 0.08;
     rig.rotation.x = cur.y * 0.1;
     const dist = wide ? 4.3 : Math.max(4.6, 5.2 / camera.aspect), el = 0.8;   // portrait: fit the die across the width
     camera.position.set(0, Math.sin(el) * dist, Math.cos(el) * dist);
     camera.lookAt(0, 0, 0);
-    camera.setViewOffset(w, h, wide ? -w * 0.24 : 0, wide ? h * 0.06 : h * 0.27, w, h);
+    // the die sits right of the text (wide) or above it (portrait); app.js posterBox() places the poster the same way
+    if (!poster) camera.setViewOffset(w, h, wide ? -w * 0.24 : 0, wide ? h * 0.06 : h * 0.27, w, h);
+    else {                           // the poster is POSTER_PAD x a hero's height, so the die's near corner fits
+      const ref = h / POSTER_PAD;
+      camera.aspect = w / ref;
+      camera.setViewOffset(w, ref, 0, -(h - ref) / 2, w, h);
+    }
     renderer.render(scene, camera);
     if (first) { first = false; onReady && onReady(); }
     if (last && now - last < 250) { frames++; if (now - last > 25) slow++; }
@@ -239,7 +250,7 @@ export function mountEngine(canvas, { head, buf, reducedMotion, onReady }) {
       if (slow > 22 && ratio > 0.55) { ratio *= 0.75; renderer.setPixelRatio(ratio); resize(); }
       frames = slow = 0;
     }
-    if (visible && !reducedMotion) raf = requestAnimationFrame(frame);
+    if (visible && !reducedMotion && !poster) raf = requestAnimationFrame(frame);
   }
   frame(performance.now());          // first frame now, not a frame later
 

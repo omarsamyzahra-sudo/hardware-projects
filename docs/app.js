@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import htm from "htm";
 import { PipelineViz, SystolicViz, WarpViz, CoalesceViz, Bars, Roofline, DieExplorer } from "./viz.js";
@@ -24,10 +24,35 @@ const heroLoad = Promise.all([import(ENGINE ? "./hero_engine.js" : "./hero3d.js"
   fetch(`assets/hero_${HERO}.json`).then((r) => r.json()), fetch(`assets/hero_${HERO}.bin`).then((r) => r.arrayBuffer())]);
 heroLoad.catch(() => {});
 
+// The engine hero's first frame as an image (assets/hero_engine_poster.webp, from hero_poster.html), shown until the
+// live first frame, which matches it, has faded in over it. The poster is cropped from an 1800 x 1350 render framed
+// for a 900 px hero (hero_engine.js POSTER_PAD); this places it where hero_engine.js's camera puts the die. The crop
+// box is [343, 349, 1388, 1192]; wide and tall layouts shift it a few px (measured against the live frame) to land
+// within 1 px of it.
+const POSTER = { src: "assets/hero_engine_poster.webp", wide: [336, 349, 1381, 1192], tall: [343, 339, 1388, 1182],
+  frame: [1800, 1350], ref: 900 };
+function posterBox(w, h) {
+  const wide = w / h > 1.15, dist = wide ? 4.3 : Math.max(4.6, 5.2 / (w / h));
+  const s = (h / POSTER.ref) * (4.3 / dist), [x0, y0, x1, y1] = wide ? POSTER.wide : POSTER.tall;
+  const cx = wide ? 0.74 * w : 0.5 * w, cy = wide ? 0.44 * h : 0.23 * h;
+  return { left: `${cx + (x0 - POSTER.frame[0] / 2) * s}px`, top: `${cy + (y0 - POSTER.frame[1] / 2) * s}px`,
+    width: `${(x1 - x0) * s}px`, height: `${(y1 - y0) * s}px` };
+}
+
 function Hero() {
   const canvas = useRef(null);
   const [ready, setReady] = useState(false);
   const [noGL, setNoGL] = useState(false);
+  const [poster, setPoster] = useState(null), [posterGone, setPosterGone] = useState(false);
+  useLayoutEffect(() => {
+    if (!ENGINE) return;
+    const el = canvas.current.parentElement, fit = () => setPoster(posterBox(el.clientWidth, el.clientHeight));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => { if (ready) { const id = setTimeout(() => setPosterGone(true), 800); return () => clearTimeout(id); } }, [ready]);
   useEffect(() => {
     let stop = null, dead = false;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -43,8 +68,9 @@ function Hero() {
     return () => { dead = true; stop && stop(); };
   }, []);
   return html`<header class="hero" id="top">
+    ${ENGINE && poster && !posterGone ? html`<img class="hero-poster" src=${POSTER.src} style=${poster} alt="" aria-hidden="true"/>` : null}
     <canvas ref=${canvas} class=${"hero-canvas" + (ready ? " ready" : "")} aria-hidden="true"></canvas>
-    ${noGL ? html`<div class="hero-fallback" aria-hidden="true"></div>` : null}
+    ${noGL && !ENGINE ? html`<div class="hero-fallback" aria-hidden="true"></div>` : null}
     <div class="hero-shade"></div>
     <div class="hero-inner wrap">
       <p class="over mono">Electrical Engineering + Mathematics · University of North Florida · ’28</p>

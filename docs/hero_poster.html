@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- hero_poster.html — renders the engine hero's first frame, centred on a transparent background, for
+     assets/hero_engine_poster.webp. Not deployed (.vercelignore). From internship/, with the local server up:
+       msedge --headless=new --force-device-scale-factor=1 --window-size=1800,1350 --default-background-color=00000000
+              --virtual-time-budget=8000 --screenshot=poster.png http://localhost:8378/hardware-projects/docs/hero_poster.html
+     then convert poster.png to WebP (quality 82). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hero poster</title>
+<style>html, body { margin: 0; background: transparent; overflow: hidden; } canvas { display: block; width: 100vw; height: 100vh; }</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { mountEngine } from "./hero_engine.js";
+const [head, buf] = await Promise.all([fetch("assets/hero_engine.json").then((r) => r.json()),
+  fetch("assets/hero_engine.bin").then((r) => r.arrayBuffer())]);
+const c = document.getElementById("c");
+mountEngine(c, { head, buf, poster: true });
+// headless screenshots don't capture a WebGL canvas reliably: show the frame as an image instead
+const img = new Image();
+img.src = c.toDataURL("image/png");
+img.style.cssText = "display:block;width:100vw;height:100vh";
+c.replaceWith(img);
+</script>
+</body>
+</html>
