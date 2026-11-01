@@ -47,7 +47,7 @@ export const EW_DIE = [
   "src": "assets/ew_engine_die.jpg",
   "alt": "Layout of the whole decoder engine: stream readers, decoder and GEMV core",
   "title": "Whole engine: streams, decoder, GEMV",
-  "desc": "The full custom-instruction engine: five AXI read streams and a write stream, the decoder, and the GEMV core with 8 BF16 multipliers and an FP32 adder tree, laid out flat, so the placer grouped each block's cells where its wires are shortest. Metal layers only: the met4/met5 power grid, met2 (purple, vertical) and met3 (green, horizontal) routing over the logic, and the empty space left at 25% utilization. The next tab colours it by block.",
+  "desc": "The full custom-instruction engine: five AXI read streams and a write stream, the decoder, and the GEMV core with 8 BF16 multipliers and an FP32 adder tree, laid out flat, so the placer grouped each block's cells where its wires are shortest. At 2.8 mm each cell row is under a pixel, so the die reads as an even texture; the loupe shows the rows, and the next tab colours it by block.",
   "specs": [
    [
     "die",
@@ -72,6 +72,16 @@ export const EW_DIE = [
   "src": "assets/ew_engine_blocks.jpg",
   "alt": "The whole decoder engine's layout coloured by block",
   "title": "Where each block landed",
-  "desc": "The same die coloured by block, traced from the routed netlist: stream FIFOs blue, AXI readers cyan, decoder yellow, activation buffer green, multipliers orange, adder tree red, accumulator and output purple, control grey. The FIFOs and buffer are flip-flops (no SRAM compiler), so storage fills most of the die."
+  "desc": "The same die coloured by block, traced from the routed netlist: stream FIFOs blue, AXI readers cyan, decoder yellow, activation buffer green, multipliers orange, adder tree red, accumulator and output purple, control grey. The FIFOs and buffer are flip-flops (no SRAM compiler), so storage fills most of the die.",
+  "specs": [
+   [
+    "blocks",
+    "8"
+   ],
+   [
+    "storage",
+    "flip-flops (no SRAM compiler)"
+   ]
+  ]
  }
 ];

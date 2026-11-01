@@ -312,7 +312,7 @@ export function DieExplorer({ shots }) {
       <div class="die-meta">
         <h4>${s.title}</h4>
         <p class="dim">${s.desc}</p>
-        <dl>${s.specs.map(([k, v]) => html`<div><dt>${k}</dt><dd class="mono">${v}</dd></div>`)}</dl>
+        ${s.specs ? html`<dl>${s.specs.map(([k, v]) => html`<div><dt>${k}</dt><dd class="mono">${v}</dd></div>`)}</dl>` : null}
         <p class="small dim">Hover the image for a loupe.</p>
       </div>
     </div>
